@@ -127,10 +127,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 self.popover?.animates = true
             }
 
+            self.popover?.contentSize = CGSize(width: 390, height: 400)
+
             self.popoverViewController?.setContent(content)
 
             let mouseLocation = NSEvent.mouseLocation
-            let popoverSize = CGSize(width: 400, height: 300)
+            let popoverSize = CGSize(width: 390, height: 400)
 
             var anchorOrigin = NSPoint(x: mouseLocation.x, y: mouseLocation.y)
             var preferredEdge: NSRectEdge = .maxY
