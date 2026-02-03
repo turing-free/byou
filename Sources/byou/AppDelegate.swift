@@ -115,7 +115,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         print("Settings window opened")
     }
 
-    private func showPopover(with content: String) {
+    private func showPopover() {
         DispatchQueue.main.async {
             NSApp.activate(ignoringOtherApps: true)
 
@@ -128,8 +128,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
 
             self.popover?.contentSize = CGSize(width: 390, height: 400)
-
-            self.popoverViewController?.setContent(content)
 
             let mouseLocation = NSEvent.mouseLocation
             let popoverSize = CGSize(width: 390, height: 400)
@@ -188,8 +186,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     let translation = await performTranslation(clipboardContent)
                     print(translation)
 
-                    let displayContent = "\(clipboardContent)\n\n---\n\n\(translation)"
-                    showPopover(with: displayContent)
+                    popoverViewController?.setOriginalText(clipboardContent)
+                    popoverViewController?.setTranslatedText(translation)
+                    showPopover()
 
                     clipboardManager.clearClipboard()
                 }
@@ -216,8 +215,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     let translation = await performTranslation(clipboardContent)
                     print(translation)
 
-                    let displayContent = "\(clipboardContent)\n\n---\n\n\(translation)"
-                    showPopover(with: displayContent)
+                    popoverViewController?.setOriginalText(clipboardContent)
+                    popoverViewController?.setTranslatedText(translation)
+                    showPopover()
 
                     clipboardManager.clearClipboard()
                 }
