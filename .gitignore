@@ -1,0 +1,26 @@
+# Build artifacts
+.build/
+*.dmg
+*.app
+dmg_temp/
+
+# Swift Package Manager
+.swiftpm/
+Package.resolved
+
+# macOS
+.DS_Store
+
+# Xcode
+xcuserdata/
+DerivedData/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary files
+*.sh.swp
+byou_temp.dmg
