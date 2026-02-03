@@ -54,7 +54,7 @@ class PopoverViewController: NSViewController {
         originalTextView.isEditable = false
         originalTextView.isSelectable = true
         originalTextView.isFieldEditor = false
-        originalTextView.font = NSFont.systemFont(ofSize: 12)
+        originalTextView.font = NSFont.systemFont(ofSize: 13)
         originalTextView.textColor = NSColor.labelColor
         originalTextView.backgroundColor = NSColor.clear
         originalTextView.textContainer?.containerSize = NSSize(width: 390, height: CGFloat.greatestFiniteMagnitude)
