@@ -115,6 +115,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         print("Settings window opened")
     }
 
+    private func ensurePopoverInitialized() {
+        if popover == nil {
+            popover = NSPopover()
+            popover?.contentViewController = PopoverViewController()
+            popoverViewController = popover?.contentViewController as? PopoverViewController
+            popover?.behavior = .transient
+            popover?.animates = true
+
+            // Pre-load the view to ensure layout is ready
+            _ = popoverViewController?.view
+        }
+    }
+
     private func showPopover() {
         DispatchQueue.main.async {
             NSApp.activate(ignoringOtherApps: true)
@@ -186,6 +199,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     let translation = await performTranslation(clipboardContent)
                     print(translation)
 
+                    // Ensure popover is created first
+                    ensurePopoverInitialized()
+
+                    // Now set the content
                     popoverViewController?.setOriginalText(clipboardContent)
                     popoverViewController?.setTranslatedText(translation)
                     showPopover()
@@ -215,6 +232,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     let translation = await performTranslation(clipboardContent)
                     print(translation)
 
+                    // Ensure popover is created first
+                    ensurePopoverInitialized()
+
+                    // Now set the content
                     popoverViewController?.setOriginalText(clipboardContent)
                     popoverViewController?.setTranslatedText(translation)
                     showPopover()
