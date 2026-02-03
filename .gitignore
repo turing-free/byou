@@ -24,3 +24,7 @@ DerivedData/
 # Temporary files
 *.sh.swp
 byou_temp.dmg
+
+# Agentic development
+.sisyphus/
+AGENTS.md
