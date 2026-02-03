@@ -124,7 +124,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 self.popover?.contentViewController = PopoverViewController()
                 self.popoverViewController = self.popover?.contentViewController as? PopoverViewController
                 self.popover?.behavior = .transient
-                self.popover?.appearance = NSAppearance(named: .vibrantDark)
                 self.popover?.animates = true
             }
 
@@ -249,6 +248,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         alert.messageText = "需要辅助功能权限"
         alert.informativeText = "byou 需要辅助功能权限来监听全局快捷键和捕获选中的内容。\n\n请前往：系统设置 > 隐私与安全 > 辅助功能\n\n勾选 byou 以授予权限，然后重启应用。"
         alert.alertStyle = .warning
+
+        if let appIcon = NSImage(named: "AppIcon") {
+            alert.icon = appIcon
+        }
+
         alert.addButton(withTitle: "打开系统设置")
         alert.addButton(withTitle: "稍后")
 

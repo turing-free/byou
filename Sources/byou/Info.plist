@@ -21,6 +21,6 @@
     <key>NSAccessibilityUsageDescription</key>
     <string>需要辅助功能权限来监听全局快捷键和获取选中的内容</string>
     <key>CFBundleIconFile</key>
-    <string>byou.icns</string>
+    <string>AppIcon.icns</string>
 </dict>
 </plist>

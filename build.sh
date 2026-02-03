@@ -17,7 +17,7 @@ if [ $? -eq 0 ]; then
     mkdir -p "$APP_CONTENTS/MacOS"
 
     # Copy icon to app bundle
-    cp "byou.icns" "$APP_RESOURCES/"
+    cp "AppIcon.icns" "$APP_RESOURCES/"
 
     # Copy Info.plist to app bundle
     cp "Sources/byou/Info.plist" "$APP_CONTENTS/"
@@ -27,6 +27,10 @@ if [ $? -eq 0 ]; then
 
     # Set executable permissions
     chmod +x "$APP_CONTENTS/MacOS/byou"
+
+    # Code sign the app bundle with consistent identifier
+    # This ensures permissions persist across restarts
+    codesign --force --sign - --identifier com.turing.byou "$APP_PATH"
 
     echo "App bundle created: $APP_PATH"
     echo ""
