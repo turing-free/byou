@@ -42,7 +42,7 @@ class TencentTranslationManager {
 
     func translateAndFormat(_ text: String, sourceLang: String = "en", targetLang: String = "zh") async -> String {
         if let translation = await translate(text, sourceLang: sourceLang, targetLang: targetLang) {
-            return "Translation (Tencent): \(translation)"
+            return "\(translation)"
         } else {
             return "Translation (Tencent): Failed to translate '\(text)'"
         }
