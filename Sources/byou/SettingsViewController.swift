@@ -1,7 +1,7 @@
 import Cocoa
 import AppKit
 
-class SettingsViewController: NSViewController {
+class SettingsViewController: NSViewController, NSTabViewDelegate {
 
     private var secretIdTextField: NSTextField!
     private var secretKeyTextField: NSSecureTextField!
@@ -9,7 +9,6 @@ class SettingsViewController: NSViewController {
     private var captureHotkeyTextField: NSTextField!
     private var doubleClickHotkeyTextField: NSTextField!
 
-    private var saveButton: NSButton!
     private var testButton: NSButton!
     private var statusLabel: NSTextField!
     private var closeButton: NSButton!
@@ -25,7 +24,7 @@ class SettingsViewController: NSViewController {
     private var doubleClickGesture: NSClickGestureRecognizer?
 
     override func loadView() {
-        view = NSView(frame: NSRect(x: 0, y: 0, width: 380, height: 450))
+        view = NSView(frame: NSRect(x: 0, y: 0, width: 380, height: 410))
 
         setupUI()
         loadCurrentSettings()
@@ -36,6 +35,14 @@ class SettingsViewController: NSViewController {
         if let window = view.window {
             window.makeFirstResponder(secretIdTextField)
             DebugLog.debug("Settings window appeared, setting first responder to Secret ID field")
+        }
+
+        if let selectedTab = tabView.selectedTabViewItem {
+            if selectedTab.label == "快捷键配置" {
+                testButton.isHidden = true
+            } else {
+                testButton.isHidden = false
+            }
         }
     }
 
@@ -48,7 +55,7 @@ class SettingsViewController: NSViewController {
             headerContainer.topAnchor.constraint(equalTo: view.topAnchor),
             headerContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             headerContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            headerContainer.heightAnchor.constraint(equalToConstant: 90),
+            headerContainer.heightAnchor.constraint(equalToConstant: 60),
 
             contentContainer.topAnchor.constraint(equalTo: headerContainer.bottomAnchor),
             contentContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -87,38 +94,32 @@ class SettingsViewController: NSViewController {
         iconImageView.translatesAutoresizingMaskIntoConstraints = false
 
         let titleLabel = NSTextField()
-        titleLabel.stringValue = "byou 翻译设置"
+        titleLabel.stringValue = "byou"
         titleLabel.isEditable = false
         titleLabel.isBordered = false
         titleLabel.backgroundColor = .clear
-        titleLabel.font = NSFont.systemFont(ofSize: 20, weight: .bold)
+        titleLabel.font = NSFont.systemFont(ofSize: 26, weight: .bold)
         titleLabel.textColor = .white
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        let subtitleLabel = NSTextField()
-        subtitleLabel.stringValue = "配置腾讯云翻译服务"
-        subtitleLabel.isEditable = false
-        subtitleLabel.isBordered = false
-        subtitleLabel.backgroundColor = .clear
-        subtitleLabel.font = NSFont.systemFont(ofSize: 13, weight: .regular)
-        subtitleLabel.textColor = NSColor.white.withAlphaComponent(0.8)
-        subtitleLabel.translatesAutoresizingMaskIntoConstraints = false
+        let contentStackView = NSStackView()
+        contentStackView.orientation = .horizontal
+        contentStackView.spacing = 10
+        contentStackView.alignment = .centerY
+        contentStackView.translatesAutoresizingMaskIntoConstraints = false
 
-        headerContainer.addSubview(iconImageView)
-        headerContainer.addSubview(titleLabel)
-        headerContainer.addSubview(subtitleLabel)
+        contentStackView.addArrangedSubview(iconImageView)
+        contentStackView.addArrangedSubview(titleLabel)
+
+        headerContainer.addSubview(contentStackView)
 
         NSLayoutConstraint.activate([
-            iconImageView.leadingAnchor.constraint(equalTo: headerContainer.leadingAnchor, constant: 30),
-            iconImageView.centerYAnchor.constraint(equalTo: headerContainer.centerYAnchor),
             iconImageView.widthAnchor.constraint(equalToConstant: 40),
             iconImageView.heightAnchor.constraint(equalToConstant: 40),
 
-            titleLabel.leadingAnchor.constraint(equalTo: iconImageView.trailingAnchor, constant: 15),
-            titleLabel.topAnchor.constraint(equalTo: headerContainer.topAnchor, constant: 25),
-
-            subtitleLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
-            subtitleLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 4)
+            contentStackView.centerXAnchor.constraint(equalTo: headerContainer.centerXAnchor),
+            contentStackView.centerYAnchor.constraint(equalTo: headerContainer.centerYAnchor),
+            contentStackView.heightAnchor.constraint(equalToConstant: 40)
         ])
 
         view.addSubview(headerContainer)
@@ -140,6 +141,8 @@ class SettingsViewController: NSViewController {
 
         tabView.addTabViewItem(accountTab)
         tabView.addTabViewItem(hotkeyTab)
+
+        tabView.delegate = self
 
         contentContainer.addSubview(tabView)
 
@@ -177,26 +180,17 @@ class SettingsViewController: NSViewController {
         testButton.translatesAutoresizingMaskIntoConstraints = false
         footerContainer.addSubview(testButton)
 
-        saveButton = NSButton(title: "Save", target: self, action: #selector(saveConfiguration))
-        saveButton.bezelStyle = .rounded
-        saveButton.translatesAutoresizingMaskIntoConstraints = false
-        footerContainer.addSubview(saveButton)
-
         NSLayoutConstraint.activate([
             divider.topAnchor.constraint(equalTo: footerContainer.topAnchor),
             divider.leadingAnchor.constraint(equalTo: footerContainer.leadingAnchor, constant: 30),
             divider.trailingAnchor.constraint(equalTo: footerContainer.trailingAnchor, constant: -30),
 
             statusLabel.leadingAnchor.constraint(equalTo: footerContainer.leadingAnchor, constant: 30),
-            statusLabel.centerYAnchor.constraint(equalTo: saveButton.centerYAnchor),
+            statusLabel.centerYAnchor.constraint(equalTo: testButton.centerYAnchor),
 
-            saveButton.trailingAnchor.constraint(equalTo: footerContainer.trailingAnchor, constant: -30),
-            saveButton.centerYAnchor.constraint(equalTo: footerContainer.centerYAnchor, constant: 2),
-            saveButton.widthAnchor.constraint(equalToConstant: 80),
-
-            testButton.trailingAnchor.constraint(equalTo: saveButton.leadingAnchor, constant: -10),
-            testButton.centerYAnchor.constraint(equalTo: saveButton.centerYAnchor),
-            testButton.widthAnchor.constraint(equalToConstant: 110)
+            testButton.trailingAnchor.constraint(equalTo: footerContainer.trailingAnchor, constant: -30),
+            testButton.centerYAnchor.constraint(equalTo: footerContainer.centerYAnchor, constant: 2),
+            testButton.widthAnchor.constraint(equalToConstant: 130)
         ])
 
         view.addSubview(footerContainer)
@@ -223,7 +217,7 @@ class SettingsViewController: NSViewController {
 
         let stackView = NSStackView()
         stackView.orientation = .vertical
-        stackView.spacing = 16
+        stackView.spacing = 15
         stackView.translatesAutoresizingMaskIntoConstraints = false
         stackView.alignment = .leading
 
@@ -248,10 +242,12 @@ class SettingsViewController: NSViewController {
         containerView.addSubview(stackView)
 
         NSLayoutConstraint.activate([
-            stackView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 20),
+            stackView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 2),
             stackView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 20),
             stackView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -20),
-            stackView.bottomAnchor.constraint(lessThanOrEqualTo: containerView.bottomAnchor, constant: -20)
+            stackView.heightAnchor.constraint(equalToConstant: 238),
+
+            containerView.heightAnchor.constraint(equalToConstant: 250)
         ])
 
         tabItem.view = containerView
@@ -268,7 +264,7 @@ class SettingsViewController: NSViewController {
 
         let stackView = NSStackView()
         stackView.orientation = .vertical
-        stackView.spacing = 16
+        stackView.spacing = 15
         stackView.translatesAutoresizingMaskIntoConstraints = false
         stackView.alignment = .leading
 
@@ -278,13 +274,13 @@ class SettingsViewController: NSViewController {
         let divider1 = createDivider()
         stackView.addArrangedSubview(divider1)
 
-        stackView.addArrangedSubview(createFormLabel("捕获鼠标下文本 (默认alt+x)", icon: "command"))
+        stackView.addArrangedSubview(createFormLabel("捕获鼠标下单词", icon: "command"))
         captureHotkeyTextField = createTextField(placeholder: "点击此处录制快捷键", icon: "command")
         captureHotkeyTextField.isEditable = false
         captureHotkeyTextField.isSelectable = true
         stackView.addArrangedSubview(captureHotkeyTextField)
 
-        stackView.addArrangedSubview(createFormLabel("捕获已选中文本 (默认alt+s)", icon: "keyboard"))
+        stackView.addArrangedSubview(createFormLabel("捕获已选中文本", icon: "keyboard"))
         doubleClickHotkeyTextField = createTextField(placeholder: "点击此处录制快捷键", icon: "keyboard")
         doubleClickHotkeyTextField.isEditable = false
         doubleClickHotkeyTextField.isSelectable = true
@@ -303,14 +299,16 @@ class SettingsViewController: NSViewController {
         containerView.addSubview(stackView)
 
         NSLayoutConstraint.activate([
-            stackView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 20),
+            stackView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 2),
             stackView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 20),
             stackView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -20),
-            stackView.bottomAnchor.constraint(lessThanOrEqualTo: containerView.bottomAnchor, constant: -20)
+            stackView.heightAnchor.constraint(equalToConstant: 238),
+
+            containerView.heightAnchor.constraint(equalToConstant: 250)
         ])
 
         tabItem.view = containerView
-    
+
         return tabItem
     }
 
@@ -461,6 +459,7 @@ class SettingsViewController: NSViewController {
             ConfigManager.shared.captureHotkeyModifiers = modifiers
 
             self.captureHotkeyTextField.stringValue = self.hotkeyStringFor(keyCode, modifiers: modifiers)
+            self.hotkeyManager?.reloadHotkeys()
             DebugLog.debug("Capture hotkey recorded: keyCode=\(keyCode), modifiers=\(modifiers)")
         }
     }
@@ -473,6 +472,7 @@ class SettingsViewController: NSViewController {
             ConfigManager.shared.doubleClickHotkeyModifiers = modifiers
 
             self.doubleClickHotkeyTextField.stringValue = self.hotkeyStringFor(keyCode, modifiers: modifiers)
+            self.hotkeyManager?.reloadHotkeys()
             DebugLog.debug("Double click hotkey recorded: keyCode=\(keyCode), modifiers=\(modifiers)")
         }
     }
@@ -511,24 +511,10 @@ class SettingsViewController: NSViewController {
         return keyMap[keyCode] ?? "?"
     }
 
-    @objc private func saveConfiguration() {
-        let secretId = secretIdTextField.stringValue.trimmingCharacters(in: .whitespaces)
-        let secretKey = secretKeyTextField.stringValue.trimmingCharacters(in: .whitespaces)
-        let region = regionComboBox.stringValue
-
-        ConfigManager.shared.tencentSecretId = secretId
-        ConfigManager.shared.tencentSecretKey = secretKey
-        ConfigManager.shared.tencentRegion = region
-
-        hotkeyManager?.reloadHotkeys()
-
-        updateStatus("✓ 配置已保存", color: NSColor(hex: "#34C759"))
-        DebugLog.debug("Configuration saved")
-    }
-
     @objc private func testConnection() {
         let secretId = secretIdTextField.stringValue.trimmingCharacters(in: .whitespaces)
         let secretKey = secretKeyTextField.stringValue.trimmingCharacters(in: .whitespaces)
+        let region = regionComboBox.stringValue
 
         guard !secretId.isEmpty && !secretKey.isEmpty else {
             updateStatus("✕ 请输入 Secret ID 和 Secret Key", color: NSColor(hex: "#FF3B30"))
@@ -537,7 +523,6 @@ class SettingsViewController: NSViewController {
         }
 
         updateStatus("⟳ 测试连接中...", color: NSColor(hex: "#007AFF"))
-        saveButton.isEnabled = false
         testButton.isEnabled = false
 
         DebugLog.debug("Testing with credentials...")
@@ -547,16 +532,17 @@ class SettingsViewController: NSViewController {
 
             ConfigManager.shared.tencentSecretId = secretId
             ConfigManager.shared.tencentSecretKey = secretKey
+            ConfigManager.shared.tencentRegion = region
 
             let result = await tempManager.translate("Hello", sourceLang: "en", targetLang: "zh")
 
             await MainActor.run {
-                self.saveButton.isEnabled = true
                 self.testButton.isEnabled = true
 
                 if result != nil {
-                    self.updateStatus("✓ 测试成功", color: NSColor(hex: "#34C759"))
-                    DebugLog.debug("test succeeded")
+                    self.hotkeyManager?.reloadHotkeys()
+                    self.updateStatus("✓ 测试成功，配置已自动保存", color: NSColor(hex: "#34C759"))
+                    DebugLog.debug("test succeeded and configuration saved")
                 } else {
                     self.updateStatus("✕ 测试失败，请检查凭证", color: NSColor(hex: "#FF3B30"))
                     DebugLog.debug("test failed")
@@ -573,6 +559,31 @@ class SettingsViewController: NSViewController {
     private func updateStatus(_ message: String, color: NSColor) {
         statusLabel.stringValue = message
         statusLabel.textColor = color
+    }
+
+    // MARK: - NSTabViewDelegate
+
+    func tabView(_ tabView: NSTabView, willSelect tabViewItem: NSTabViewItem?) {
+        guard let tabViewItem = tabViewItem else { return }
+
+        if tabViewItem.label == "账号配置" {
+            testButton.isHidden = false
+        } else if tabViewItem.label == "快捷键配置" {
+            testButton.isHidden = true
+            updateStatus("", color: NSColor.secondaryLabelColor)
+        }
+    }
+
+    func tabView(_ tabView: NSTabView, didSelect tabViewItem: NSTabViewItem?) {
+        guard let tabViewItem = tabViewItem, let containerView = tabViewItem.view else {
+            return
+        }
+
+        DispatchQueue.main.async {
+            containerView.translatesAutoresizingMaskIntoConstraints = true
+            containerView.frame = NSRect(x: 10, y: 33, width: 360, height: 250)
+            containerView.layoutSubtreeIfNeeded()
+        }
     }
 }
 
