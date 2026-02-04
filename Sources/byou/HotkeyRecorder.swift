@@ -17,6 +17,10 @@ class HotkeyRecorder: NSObject {
 
         textField.stringValue = "按下快捷键..."
 
+        if let window = textField.window {
+            window.makeFirstResponder(textField)
+        }
+
         monitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .flagsChanged]) { [weak self] event in
             guard let self = self else { return event }
 
@@ -28,6 +32,8 @@ class HotkeyRecorder: NSObject {
 
                 if modifierFlags.contains(.command) || modifierFlags.contains(.option) ||
                    modifierFlags.contains(.control) || modifierFlags.contains(.shift) {
+
+                    DebugLog.debug("Hotkey recorded: keyCode=\(keyCode), modifiers=\(modifiers)")
 
                     self.stopRecording()
                     self.onHotkeyRecorded?(keyCode, modifiers)

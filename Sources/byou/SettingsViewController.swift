@@ -6,10 +6,11 @@ class SettingsViewController: NSViewController, NSTabViewDelegate {
     private var secretIdTextField: NSTextField!
     private var secretKeyTextField: NSSecureTextField!
     private var regionComboBox: NSComboBox!
-    private var captureHotkeyTextField: NSTextField!
-    private var doubleClickHotkeyTextField: NSTextField!
+    private var captureHotkeyTextField: RecordingTextField!
+    private var doubleClickHotkeyTextField: RecordingTextField!
 
     private var testButton: NSButton!
+    private var resetHotkeyButton: NSButton!
     private var statusLabel: NSTextField!
     private var closeButton: NSButton!
 
@@ -18,10 +19,7 @@ class SettingsViewController: NSViewController, NSTabViewDelegate {
     private var footerContainer: NSView!
     private var tabView: NSTabView!
 
-    private var hotkeyRecorder = HotkeyRecorder()
     private var hotkeyManager: HotkeyManager?
-    private var captureGesture: NSClickGestureRecognizer?
-    private var doubleClickGesture: NSClickGestureRecognizer?
 
     override func loadView() {
         view = NSView(frame: NSRect(x: 0, y: 0, width: 380, height: 410))
@@ -32,16 +30,13 @@ class SettingsViewController: NSViewController, NSTabViewDelegate {
 
     override func viewDidAppear() {
         super.viewDidAppear()
-        if let window = view.window {
-            window.makeFirstResponder(secretIdTextField)
-            DebugLog.debug("Settings window appeared, setting first responder to Secret ID field")
-        }
-
         if let selectedTab = tabView.selectedTabViewItem {
             if selectedTab.label == "快捷键配置" {
                 testButton.isHidden = true
+                resetHotkeyButton.isHidden = false
             } else {
                 testButton.isHidden = false
+                resetHotkeyButton.isHidden = true
             }
         }
     }
@@ -180,6 +175,12 @@ class SettingsViewController: NSViewController, NSTabViewDelegate {
         testButton.translatesAutoresizingMaskIntoConstraints = false
         footerContainer.addSubview(testButton)
 
+        resetHotkeyButton = NSButton(title: "Reset Hotkey", target: self, action: #selector(resetToDefaultHotkeys))
+        resetHotkeyButton.bezelStyle = .rounded
+        resetHotkeyButton.translatesAutoresizingMaskIntoConstraints = false
+        resetHotkeyButton.isHidden = true
+        footerContainer.addSubview(resetHotkeyButton)
+
         NSLayoutConstraint.activate([
             divider.topAnchor.constraint(equalTo: footerContainer.topAnchor),
             divider.leadingAnchor.constraint(equalTo: footerContainer.leadingAnchor, constant: 30),
@@ -190,7 +191,11 @@ class SettingsViewController: NSViewController, NSTabViewDelegate {
 
             testButton.trailingAnchor.constraint(equalTo: footerContainer.trailingAnchor, constant: -30),
             testButton.centerYAnchor.constraint(equalTo: footerContainer.centerYAnchor, constant: 2),
-            testButton.widthAnchor.constraint(equalToConstant: 130)
+            testButton.widthAnchor.constraint(equalToConstant: 130),
+
+            resetHotkeyButton.trailingAnchor.constraint(equalTo: footerContainer.trailingAnchor, constant: -30),
+            resetHotkeyButton.centerYAnchor.constraint(equalTo: footerContainer.centerYAnchor, constant: 2),
+            resetHotkeyButton.widthAnchor.constraint(equalToConstant: 130)
         ])
 
         view.addSubview(footerContainer)
@@ -274,16 +279,12 @@ class SettingsViewController: NSViewController, NSTabViewDelegate {
         let divider1 = createDivider()
         stackView.addArrangedSubview(divider1)
 
-        stackView.addArrangedSubview(createFormLabel("捕获鼠标下单词", icon: "command"))
-        captureHotkeyTextField = createTextField(placeholder: "点击此处录制快捷键", icon: "command")
-        captureHotkeyTextField.isEditable = false
-        captureHotkeyTextField.isSelectable = true
+        stackView.addArrangedSubview(createFormLabel("捕获已选中文本", icon: "command"))
+        captureHotkeyTextField = createRecordingTextField(placeholder: "点击此处录制快捷键", icon: "command")
         stackView.addArrangedSubview(captureHotkeyTextField)
 
-        stackView.addArrangedSubview(createFormLabel("捕获已选中文本", icon: "keyboard"))
-        doubleClickHotkeyTextField = createTextField(placeholder: "点击此处录制快捷键", icon: "keyboard")
-        doubleClickHotkeyTextField.isEditable = false
-        doubleClickHotkeyTextField.isSelectable = true
+        stackView.addArrangedSubview(createFormLabel("捕获鼠标下单词", icon: "keyboard"))
+        doubleClickHotkeyTextField = createRecordingTextField(placeholder: "点击此处录制快捷键", icon: "keyboard")
         stackView.addArrangedSubview(doubleClickHotkeyTextField)
 
         let infoLabel = NSTextField()
@@ -376,6 +377,22 @@ class SettingsViewController: NSViewController, NSTabViewDelegate {
         return textField
     }
 
+    private func createRecordingTextField(placeholder: String, icon: String) -> RecordingTextField {
+        let textField = RecordingTextField()
+        textField.placeholderString = placeholder
+        textField.translatesAutoresizingMaskIntoConstraints = false
+        textField.widthAnchor.constraint(equalToConstant: 320).isActive = true
+        textField.isEditable = false
+        textField.isSelectable = true
+        textField.wantsLayer = true
+        textField.layer?.cornerRadius = 6
+        textField.layer?.borderWidth = 1
+        textField.layer?.borderColor = NSColor(hex: "#DDDDDD").cgColor
+        textField.focusRingType = .none
+
+        return textField
+    }
+
     private func createSecureTextField(placeholder: String, icon: String) -> NSSecureTextField {
         let textField = NSSecureTextField()
         textField.placeholderString = placeholder
@@ -427,11 +444,13 @@ class SettingsViewController: NSViewController, NSTabViewDelegate {
     }
 
     private func setupHotkeyRecording() {
-        captureGesture = NSClickGestureRecognizer(target: self, action: #selector(captureHotkeyTextFieldClicked))
-        captureHotkeyTextField.addGestureRecognizer(captureGesture!)
+        captureHotkeyTextField.setOnClick { [weak self] in
+            self?.captureHotkeyTextFieldClicked()
+        }
 
-        doubleClickGesture = NSClickGestureRecognizer(target: self, action: #selector(doubleClickHotkeyTextFieldClicked))
-        doubleClickHotkeyTextField.addGestureRecognizer(doubleClickGesture!)
+        doubleClickHotkeyTextField.setOnClick { [weak self] in
+            self?.doubleClickHotkeyTextFieldClicked()
+        }
 
         if let appDelegate = NSApp.delegate as? AppDelegate {
             hotkeyManager = appDelegate.hotkeyManager
@@ -441,38 +460,55 @@ class SettingsViewController: NSViewController, NSTabViewDelegate {
     deinit {
         DebugLog.debug("SettingsViewController deinit, cleaning up resources")
 
-        captureHotkeyTextField?.removeGestureRecognizer(captureGesture!)
-        doubleClickHotkeyTextField?.removeGestureRecognizer(doubleClickGesture!)
-        captureGesture = nil
-        doubleClickGesture = nil
-        hotkeyRecorder.stopRecording()
+        captureHotkeyTextField?.stopRecording()
+        doubleClickHotkeyTextField?.stopRecording()
         hotkeyManager = nil
 
         DebugLog.debug("SettingsViewController resources cleaned up")
     }
 
     @objc private func captureHotkeyTextFieldClicked() {
-        hotkeyRecorder.startRecording(for: captureHotkeyTextField) { [weak self] (keyCode, modifiers) in
+        captureHotkeyTextField.startRecording { [weak self] (keyCode, modifiers) in
             guard let self = self else { return }
+
+            let doubleClickKeyCode = ConfigManager.shared.doubleClickHotkeyKeyCode
+            let doubleClickModifiers = ConfigManager.shared.doubleClickHotkeyModifiers
+
+            if keyCode == doubleClickKeyCode && modifiers == doubleClickModifiers {
+                self.updateStatus("✕ 此快捷键已被占用", color: NSColor(hex: "#FF3B30"))
+                DebugLog.debug("Capture hotkey conflicts with double click hotkey")
+                return
+            }
 
             ConfigManager.shared.captureHotkeyKeyCode = keyCode
             ConfigManager.shared.captureHotkeyModifiers = modifiers
 
             self.captureHotkeyTextField.stringValue = self.hotkeyStringFor(keyCode, modifiers: modifiers)
             self.hotkeyManager?.reloadHotkeys()
+            self.updateStatus("✓ 快捷键已保存", color: NSColor(hex: "#34C759"))
             DebugLog.debug("Capture hotkey recorded: keyCode=\(keyCode), modifiers=\(modifiers)")
         }
     }
 
     @objc private func doubleClickHotkeyTextFieldClicked() {
-        hotkeyRecorder.startRecording(for: doubleClickHotkeyTextField) { [weak self] (keyCode, modifiers) in
+        doubleClickHotkeyTextField.startRecording { [weak self] (keyCode, modifiers) in
             guard let self = self else { return }
+
+            let captureKeyCode = ConfigManager.shared.captureHotkeyKeyCode
+            let captureModifiers = ConfigManager.shared.captureHotkeyModifiers
+
+            if keyCode == captureKeyCode && modifiers == captureModifiers {
+                self.updateStatus("✕ 此快捷键已被占用", color: NSColor(hex: "#FF3B30"))
+                DebugLog.debug("Double click hotkey conflicts with capture hotkey")
+                return
+            }
 
             ConfigManager.shared.doubleClickHotkeyKeyCode = keyCode
             ConfigManager.shared.doubleClickHotkeyModifiers = modifiers
 
             self.doubleClickHotkeyTextField.stringValue = self.hotkeyStringFor(keyCode, modifiers: modifiers)
             self.hotkeyManager?.reloadHotkeys()
+            self.updateStatus("✓ 快捷键已保存", color: NSColor(hex: "#34C759"))
             DebugLog.debug("Double click hotkey recorded: keyCode=\(keyCode), modifiers=\(modifiers)")
         }
     }
@@ -551,6 +587,20 @@ class SettingsViewController: NSViewController, NSTabViewDelegate {
         }
     }
 
+    @objc private func resetToDefaultHotkeys() {
+        ConfigManager.shared.resetHotkeys()
+
+        captureHotkeyTextField.stringValue = hotkeyStringFor(ConfigManager.shared.captureHotkeyKeyCode,
+                                                               modifiers: ConfigManager.shared.captureHotkeyModifiers)
+        doubleClickHotkeyTextField.stringValue = hotkeyStringFor(ConfigManager.shared.doubleClickHotkeyKeyCode,
+                                                                  modifiers: ConfigManager.shared.doubleClickHotkeyModifiers)
+
+        hotkeyManager?.reloadHotkeys()
+
+        updateStatus("✓ 已恢复默认快捷键", color: NSColor(hex: "#34C759"))
+        DebugLog.debug("Hotkeys reset to defaults")
+    }
+
     @objc private func closeWindow() {
         view.window?.close()
         DebugLog.debug("Settings window closed")
@@ -568,8 +618,10 @@ class SettingsViewController: NSViewController, NSTabViewDelegate {
 
         if tabViewItem.label == "账号配置" {
             testButton.isHidden = false
+            resetHotkeyButton.isHidden = true
         } else if tabViewItem.label == "快捷键配置" {
             testButton.isHidden = true
+            resetHotkeyButton.isHidden = false
             updateStatus("", color: NSColor.secondaryLabelColor)
         }
     }
