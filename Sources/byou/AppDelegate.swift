@@ -94,12 +94,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         let settingsVC = SettingsViewController()
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 500, height: 400),
+            contentRect: NSRect(x: 0, y: 0, width: 400, height: 360),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
         )
-        window.title = "Translation Settings"
+        window.title = "Settings"
         window.contentViewController = settingsVC
         window.center()
         window.isReleasedWhenClosed = false
@@ -194,17 +194,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
                 DebugLog.debug("Selected content: \(clipboardContent)")
 
+                ensurePopoverInitialized()
+                popoverViewController?.setOriginalText(clipboardContent)
+                popoverViewController?.setTranslatedText("翻译中...")
+                showPopover()
+
                 Task {
                     let translation = await performTranslation(clipboardContent)
                     DebugLog.debug(translation)
 
-                    // Ensure popover is created first
-                    ensurePopoverInitialized()
-
-                    // Now set the content
-                    popoverViewController?.setOriginalText(clipboardContent)
-                    popoverViewController?.setTranslatedText(translation)
-                    showPopover()
+                    await MainActor.run {
+                        popoverViewController?.setTranslatedText(translation)
+                    }
 
                     clipboardManager.clearClipboard()
                 }
@@ -227,17 +228,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
                 DebugLog.debug("Selected content: \(clipboardContent)")
 
+                ensurePopoverInitialized()
+                popoverViewController?.setOriginalText(clipboardContent)
+                popoverViewController?.setTranslatedText("翻译中...")
+                showPopover()
+
                 Task {
                     let translation = await performTranslation(clipboardContent)
                     DebugLog.debug(translation)
 
-                    // Ensure popover is created first
-                    ensurePopoverInitialized()
-
-                    // Now set the content
-                    popoverViewController?.setOriginalText(clipboardContent)
-                    popoverViewController?.setTranslatedText(translation)
-                    showPopover()
+                    await MainActor.run {
+                        popoverViewController?.setTranslatedText(translation)
+                    }
 
                     clipboardManager.clearClipboard()
                 }

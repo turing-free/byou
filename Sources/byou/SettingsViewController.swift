@@ -12,7 +12,7 @@ class SettingsViewController: NSViewController {
     private var closeButton: NSButton!
 
     override func loadView() {
-        view = NSView(frame: NSRect(x: 0, y: 0, width: 500, height: 400))
+        view = NSView(frame: NSRect(x: 0, y: 0, width: 400, height: 360))
 
         setupUI()
         loadCurrentSettings()
@@ -33,14 +33,14 @@ class SettingsViewController: NSViewController {
         stackView.translatesAutoresizingMaskIntoConstraints = false
         stackView.alignment = .leading
 
-        stackView.addArrangedSubview(createSectionTitle("Tencent Cloud Translation"))
+        stackView.addArrangedSubview(createSectionTitle("Tencent Cloud"))
 
         stackView.addArrangedSubview(createLabel("Secret ID:"))
-        secretIdTextField = createTextField(placeholder: "Enter your Tencent Cloud Secret ID")
+        secretIdTextField = createTextField(placeholder: "Tencent Cloud Secret ID")
         stackView.addArrangedSubview(secretIdTextField)
 
         stackView.addArrangedSubview(createLabel("Secret Key:"))
-        secretKeyTextField = createSecureTextField(placeholder: "Enter your Tencent Cloud Secret Key")
+        secretKeyTextField = createSecureTextField(placeholder: "Tencent Cloud Secret Key")
         stackView.addArrangedSubview(secretKeyTextField)
 
         stackView.addArrangedSubview(createLabel("Region:"))
@@ -60,11 +60,11 @@ class SettingsViewController: NSViewController {
         buttonStackView.orientation = .horizontal
         buttonStackView.spacing = 10
 
-        saveButton = NSButton(title: "Save Configuration", target: self, action: #selector(saveConfiguration))
+        saveButton = NSButton(title: "Save", target: self, action: #selector(saveConfiguration))
         saveButton.bezelStyle = .rounded
         saveButton.translatesAutoresizingMaskIntoConstraints = false
 
-        testButton = NSButton(title: "Test Connection", target: self, action: #selector(testConnection))
+        testButton = NSButton(title: "Test", target: self, action: #selector(testConnection))
         testButton.bezelStyle = .rounded
         testButton.translatesAutoresizingMaskIntoConstraints = false
 
@@ -96,7 +96,7 @@ class SettingsViewController: NSViewController {
         label.font = NSFont.boldSystemFont(ofSize: 14)
         label.textColor = .labelColor
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.widthAnchor.constraint(equalToConstant: 440).isActive = true
+        label.widthAnchor.constraint(equalToConstant: 340).isActive = true
         return label
     }
 
@@ -109,7 +109,7 @@ class SettingsViewController: NSViewController {
         label.font = NSFont.systemFont(ofSize: 13)
         label.textColor = .labelColor
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.widthAnchor.constraint(equalToConstant: 440).isActive = true
+        label.widthAnchor.constraint(equalToConstant: 340).isActive = true
         return label
     }
 
@@ -117,7 +117,7 @@ class SettingsViewController: NSViewController {
         let textField = NSTextField()
         textField.placeholderString = placeholder
         textField.translatesAutoresizingMaskIntoConstraints = false
-        textField.widthAnchor.constraint(equalToConstant: 440).isActive = true
+        textField.widthAnchor.constraint(equalToConstant: 340).isActive = true
         textField.isEditable = true
         textField.isSelectable = true
         return textField
@@ -127,7 +127,7 @@ class SettingsViewController: NSViewController {
         let textField = NSSecureTextField()
         textField.placeholderString = placeholder
         textField.translatesAutoresizingMaskIntoConstraints = false
-        textField.widthAnchor.constraint(equalToConstant: 440).isActive = true
+        textField.widthAnchor.constraint(equalToConstant: 340).isActive = true
         textField.isEditable = true
         textField.isSelectable = true
         return textField
@@ -137,7 +137,7 @@ class SettingsViewController: NSViewController {
         let comboBox = NSComboBox()
         comboBox.addItems(withObjectValues: items)
         comboBox.translatesAutoresizingMaskIntoConstraints = false
-        comboBox.widthAnchor.constraint(equalToConstant: 440).isActive = true
+        comboBox.widthAnchor.constraint(equalToConstant: 340).isActive = true
         return comboBox
     }
 
@@ -156,7 +156,7 @@ class SettingsViewController: NSViewController {
         ConfigManager.shared.tencentSecretKey = secretKey
         ConfigManager.shared.tencentRegion = region
 
-        updateStatus("Configuration saved successfully!", color: .systemGreen)
+        updateStatus("Saved successfully!", color: .systemGreen)
         DebugLog.debug("Configuration saved")
     }
 
@@ -174,7 +174,7 @@ class SettingsViewController: NSViewController {
         saveButton.isEnabled = false
         testButton.isEnabled = false
 
-        DebugLog.debug("Testing connection with credentials...")
+        DebugLog.debug("Testing with credentials...")
 
         Task {
             let tempManager = TencentTranslationManager()
@@ -189,11 +189,11 @@ class SettingsViewController: NSViewController {
                 self.testButton.isEnabled = true
 
                 if result != nil {
-                    self.updateStatus("Connection test successful!", color: .systemGreen)
-                    DebugLog.debug("Connection test succeeded")
+                    self.updateStatus("test successful!", color: .systemGreen)
+                    DebugLog.debug("test succeeded")
                 } else {
-                    self.updateStatus("Connection test failed. Please check your credentials.", color: .systemRed)
-                    DebugLog.debug("Connection test failed")
+                    self.updateStatus("test failed. Please check your credentials.", color: .systemRed)
+                    DebugLog.debug("test failed")
                 }
             }
         }
