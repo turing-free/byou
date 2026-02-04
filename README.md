@@ -97,16 +97,6 @@ swift build
 ## 项目结构
 
 ```
-Sources/byou/
-├── AppDelegate.swift              # 主应用逻辑
-├── ConfigManager.swift           # 配置管理（凭证存储）
-├── TencentTranslationManager.swift # 腾讯云API集成
-├── SettingsViewController.swift   # 配置界面
-├── PopoverViewController.swift   # 翻译结果弹出窗口
-├── HotkeyManager.swift          # 全局快捷键管理
-├── ClipboardManager.swift        # 剪切板操作
-└── MouseManager.swift           # 鼠标双击模拟
-```
 
 ## 相关资源
 
