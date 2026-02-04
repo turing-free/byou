@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 
 /// 配置管理器 - 安全存储应用配置和凭证
 class ConfigManager {
@@ -6,7 +7,16 @@ class ConfigManager {
 
     private let userDefaults = UserDefaults.standard
 
-    private init() {}
+    private init() {
+        initializeDefaultHotkeys()
+    }
+
+    private func initializeDefaultHotkeys() {
+        if !userDefaults.bool(forKey: "hotkey.defaults.set") {
+            resetHotkeys()
+            userDefaults.set(true, forKey: "hotkey.defaults.set")
+        }
+    }
 
     // MARK: - Tencent Cloud Configuration
 
@@ -14,6 +24,10 @@ class ConfigManager {
         static let tencentSecretId = "tencent.secretId"
         static let tencentSecretKey = "tencent.secretKey"
         static let tencentRegion = "tencent.region"
+        static let captureHotkeyKeyCode = "hotkey.capture.keyCode"
+        static let captureHotkeyModifiers = "hotkey.capture.modifiers"
+        static let doubleClickHotkeyKeyCode = "hotkey.doubleClick.keyCode"
+        static let doubleClickHotkeyModifiers = "hotkey.doubleClick.modifiers"
     }
 
     // MARK: - Tencent Cloud Credentials
@@ -49,6 +63,46 @@ class ConfigManager {
         return !tencentSecretId.isEmpty && !tencentSecretKey.isEmpty
     }
 
+    // MARK: - Hotkey Configuration
+
+    // 捕获快捷键（默认 Alt+S）
+    var captureHotkeyKeyCode: UInt32 {
+        get {
+            return UInt32(userDefaults.integer(forKey: Keys.captureHotkeyKeyCode))
+        }
+        set {
+            userDefaults.set(newValue, forKey: Keys.captureHotkeyKeyCode)
+        }
+    }
+
+    var captureHotkeyModifiers: UInt {
+        get {
+            return UInt(userDefaults.integer(forKey: Keys.captureHotkeyModifiers))
+        }
+        set {
+            userDefaults.set(newValue, forKey: Keys.captureHotkeyModifiers)
+        }
+    }
+
+    // 双击快捷键（默认 Alt+X）
+    var doubleClickHotkeyKeyCode: UInt32 {
+        get {
+            return UInt32(userDefaults.integer(forKey: Keys.doubleClickHotkeyKeyCode))
+        }
+        set {
+            userDefaults.set(newValue, forKey: Keys.doubleClickHotkeyKeyCode)
+        }
+    }
+
+    var doubleClickHotkeyModifiers: UInt {
+        get {
+            return UInt(userDefaults.integer(forKey: Keys.doubleClickHotkeyModifiers))
+        }
+        set {
+            userDefaults.set(newValue, forKey: Keys.doubleClickHotkeyModifiers)
+        }
+    }
+
     // MARK: - Validation
 
     func validateTencentCredentials() -> (isValid: Bool, error: String?) {
@@ -77,6 +131,16 @@ class ConfigManager {
         tencentSecretId = ""
         tencentSecretKey = ""
         tencentRegion = "ap-chengdu"
+    }
+
+    func resetHotkeys() {
+        // 默认 Alt+S (keyCode=1)
+        captureHotkeyKeyCode = 1
+        captureHotkeyModifiers = NSEvent.ModifierFlags.option.rawValue
+
+        // 默认 Alt+X (keyCode=7)
+        doubleClickHotkeyKeyCode = 7
+        doubleClickHotkeyModifiers = NSEvent.ModifierFlags.option.rawValue
     }
 
     func resetToDefaults() {

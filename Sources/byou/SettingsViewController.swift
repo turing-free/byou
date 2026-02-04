@@ -6,6 +6,9 @@ class SettingsViewController: NSViewController {
     private var secretIdTextField: NSTextField!
     private var secretKeyTextField: NSSecureTextField!
     private var regionComboBox: NSComboBox!
+    private var captureHotkeyTextField: NSTextField!
+    private var doubleClickHotkeyTextField: NSTextField!
+
     private var saveButton: NSButton!
     private var testButton: NSButton!
     private var statusLabel: NSTextField!
@@ -14,6 +17,12 @@ class SettingsViewController: NSViewController {
     private var headerContainer: NSView!
     private var contentContainer: NSView!
     private var footerContainer: NSView!
+    private var tabView: NSTabView!
+
+    private var hotkeyRecorder = HotkeyRecorder()
+    private var hotkeyManager: HotkeyManager?
+    private var captureGesture: NSClickGestureRecognizer?
+    private var doubleClickGesture: NSClickGestureRecognizer?
 
     override func loadView() {
         view = NSView(frame: NSRect(x: 0, y: 0, width: 380, height: 450))
@@ -121,36 +130,24 @@ class SettingsViewController: NSViewController {
         contentContainer.layer?.backgroundColor = NSColor(hex: "#F5F5F7").cgColor
         contentContainer.translatesAutoresizingMaskIntoConstraints = false
 
-        let stackView = NSStackView()
-        stackView.orientation = .vertical
-        stackView.spacing = 16
-        stackView.translatesAutoresizingMaskIntoConstraints = false
-        stackView.alignment = .leading
+        tabView = NSTabView()
+        tabView.translatesAutoresizingMaskIntoConstraints = false
+        tabView.font = NSFont.systemFont(ofSize: 13)
+        tabView.tabViewType = .topTabsBezelBorder
 
-        let groupTitle = createGroupLabel("账号配置")
-        stackView.addArrangedSubview(groupTitle)
+        let accountTab = createAccountTab()
+        let hotkeyTab = createHotkeyTab()
 
-        let divider1 = createDivider()
-        stackView.addArrangedSubview(divider1)
+        tabView.addTabViewItem(accountTab)
+        tabView.addTabViewItem(hotkeyTab)
 
-        stackView.addArrangedSubview(createFormLabel("Secret ID", icon: "key.fill"))
-        secretIdTextField = createTextField(placeholder: "Tencent Cloud Secret ID", icon: "key.fill")
-        stackView.addArrangedSubview(secretIdTextField)
-
-        stackView.addArrangedSubview(createFormLabel("Secret Key", icon: "lock.fill"))
-        secretKeyTextField = createSecureTextField(placeholder: "Tencent Cloud Secret Key", icon: "lock.fill")
-        stackView.addArrangedSubview(secretKeyTextField)
-
-        stackView.addArrangedSubview(createFormLabel("Region", icon: "globe"))
-        regionComboBox = createComboBox(items: ["ap-chengdu", "ap-guangzhou", "ap-shanghai", "ap-beijing", "ap-singapore", "us-east-1"], icon: "globe")
-        stackView.addArrangedSubview(regionComboBox)
-
-        contentContainer.addSubview(stackView)
+        contentContainer.addSubview(tabView)
 
         NSLayoutConstraint.activate([
-            stackView.topAnchor.constraint(equalTo: contentContainer.topAnchor, constant: 24),
-            stackView.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 30),
-            stackView.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -30)
+            tabView.topAnchor.constraint(equalTo: contentContainer.topAnchor, constant: 20),
+            tabView.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 20),
+            tabView.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -20),
+            tabView.bottomAnchor.constraint(equalTo: contentContainer.bottomAnchor, constant: -20)
         ])
 
         view.addSubview(contentContainer)
@@ -215,6 +212,106 @@ class SettingsViewController: NSViewController {
         label.textColor = NSColor.secondaryLabelColor
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
+    }
+
+    private func createAccountTab() -> NSTabViewItem {
+        let tabItem = NSTabViewItem(identifier: "account" as NSString)
+        tabItem.label = "账号配置"
+
+        let containerView = NSView()
+        containerView.translatesAutoresizingMaskIntoConstraints = false
+
+        let stackView = NSStackView()
+        stackView.orientation = .vertical
+        stackView.spacing = 16
+        stackView.translatesAutoresizingMaskIntoConstraints = false
+        stackView.alignment = .leading
+
+        let groupTitle = createGroupLabel("账号配置")
+        stackView.addArrangedSubview(groupTitle)
+
+        let divider1 = createDivider()
+        stackView.addArrangedSubview(divider1)
+
+        stackView.addArrangedSubview(createFormLabel("Secret ID", icon: "key.fill"))
+        secretIdTextField = createTextField(placeholder: "Tencent Cloud Secret ID", icon: "key.fill")
+        stackView.addArrangedSubview(secretIdTextField)
+
+        stackView.addArrangedSubview(createFormLabel("Secret Key", icon: "lock.fill"))
+        secretKeyTextField = createSecureTextField(placeholder: "Tencent Cloud Secret Key", icon: "lock.fill")
+        stackView.addArrangedSubview(secretKeyTextField)
+
+        stackView.addArrangedSubview(createFormLabel("Region", icon: "globe"))
+        regionComboBox = createComboBox(items: ["ap-chengdu", "ap-guangzhou", "ap-shanghai", "ap-beijing", "ap-singapore", "us-east-1"], icon: "globe")
+        stackView.addArrangedSubview(regionComboBox)
+
+        containerView.addSubview(stackView)
+
+        NSLayoutConstraint.activate([
+            stackView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 20),
+            stackView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 20),
+            stackView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -20),
+            stackView.bottomAnchor.constraint(lessThanOrEqualTo: containerView.bottomAnchor, constant: -20)
+        ])
+
+        tabItem.view = containerView
+
+        return tabItem
+    }
+
+    private func createHotkeyTab() -> NSTabViewItem {
+        let tabItem = NSTabViewItem(identifier: "hotkey" as NSString)
+        tabItem.label = "快捷键配置"
+
+        let containerView = NSView()
+        containerView.translatesAutoresizingMaskIntoConstraints = false
+
+        let stackView = NSStackView()
+        stackView.orientation = .vertical
+        stackView.spacing = 16
+        stackView.translatesAutoresizingMaskIntoConstraints = false
+        stackView.alignment = .leading
+
+        let groupTitle = createGroupLabel("快捷键配置")
+        stackView.addArrangedSubview(groupTitle)
+
+        let divider1 = createDivider()
+        stackView.addArrangedSubview(divider1)
+
+        stackView.addArrangedSubview(createFormLabel("捕获鼠标下文本 (默认alt+x)", icon: "command"))
+        captureHotkeyTextField = createTextField(placeholder: "点击此处录制快捷键", icon: "command")
+        captureHotkeyTextField.isEditable = false
+        captureHotkeyTextField.isSelectable = true
+        stackView.addArrangedSubview(captureHotkeyTextField)
+
+        stackView.addArrangedSubview(createFormLabel("捕获已选中文本 (默认alt+s)", icon: "keyboard"))
+        doubleClickHotkeyTextField = createTextField(placeholder: "点击此处录制快捷键", icon: "keyboard")
+        doubleClickHotkeyTextField.isEditable = false
+        doubleClickHotkeyTextField.isSelectable = true
+        stackView.addArrangedSubview(doubleClickHotkeyTextField)
+
+        let infoLabel = NSTextField()
+        infoLabel.stringValue = "点击输入框后，按下想要设置的快捷键组合"
+        infoLabel.isEditable = false
+        infoLabel.isBordered = false
+        infoLabel.backgroundColor = .clear
+        infoLabel.font = NSFont.systemFont(ofSize: 11)
+        infoLabel.textColor = .secondaryLabelColor
+        infoLabel.translatesAutoresizingMaskIntoConstraints = false
+        stackView.addArrangedSubview(infoLabel)
+
+        containerView.addSubview(stackView)
+
+        NSLayoutConstraint.activate([
+            stackView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 20),
+            stackView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 20),
+            stackView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -20),
+            stackView.bottomAnchor.constraint(lessThanOrEqualTo: containerView.bottomAnchor, constant: -20)
+        ])
+
+        tabItem.view = containerView
+    
+        return tabItem
     }
 
     private func createFormLabel(_ text: String, icon: String) -> NSTextField {
@@ -322,6 +419,96 @@ class SettingsViewController: NSViewController {
         secretIdTextField.stringValue = ConfigManager.shared.tencentSecretId
         secretKeyTextField.stringValue = ConfigManager.shared.tencentSecretKey
         regionComboBox.stringValue = ConfigManager.shared.tencentRegion
+
+        captureHotkeyTextField.stringValue = hotkeyStringFor(ConfigManager.shared.captureHotkeyKeyCode,
+                                                               modifiers: ConfigManager.shared.captureHotkeyModifiers)
+        doubleClickHotkeyTextField.stringValue = hotkeyStringFor(ConfigManager.shared.doubleClickHotkeyKeyCode,
+                                                                  modifiers: ConfigManager.shared.doubleClickHotkeyModifiers)
+
+        setupHotkeyRecording()
+    }
+
+    private func setupHotkeyRecording() {
+        captureGesture = NSClickGestureRecognizer(target: self, action: #selector(captureHotkeyTextFieldClicked))
+        captureHotkeyTextField.addGestureRecognizer(captureGesture!)
+
+        doubleClickGesture = NSClickGestureRecognizer(target: self, action: #selector(doubleClickHotkeyTextFieldClicked))
+        doubleClickHotkeyTextField.addGestureRecognizer(doubleClickGesture!)
+
+        if let appDelegate = NSApp.delegate as? AppDelegate {
+            hotkeyManager = appDelegate.hotkeyManager
+        }
+    }
+
+    deinit {
+        DebugLog.debug("SettingsViewController deinit, cleaning up resources")
+
+        captureHotkeyTextField?.removeGestureRecognizer(captureGesture!)
+        doubleClickHotkeyTextField?.removeGestureRecognizer(doubleClickGesture!)
+        captureGesture = nil
+        doubleClickGesture = nil
+        hotkeyRecorder.stopRecording()
+        hotkeyManager = nil
+
+        DebugLog.debug("SettingsViewController resources cleaned up")
+    }
+
+    @objc private func captureHotkeyTextFieldClicked() {
+        hotkeyRecorder.startRecording(for: captureHotkeyTextField) { [weak self] (keyCode, modifiers) in
+            guard let self = self else { return }
+
+            ConfigManager.shared.captureHotkeyKeyCode = keyCode
+            ConfigManager.shared.captureHotkeyModifiers = modifiers
+
+            self.captureHotkeyTextField.stringValue = self.hotkeyStringFor(keyCode, modifiers: modifiers)
+            DebugLog.debug("Capture hotkey recorded: keyCode=\(keyCode), modifiers=\(modifiers)")
+        }
+    }
+
+    @objc private func doubleClickHotkeyTextFieldClicked() {
+        hotkeyRecorder.startRecording(for: doubleClickHotkeyTextField) { [weak self] (keyCode, modifiers) in
+            guard let self = self else { return }
+
+            ConfigManager.shared.doubleClickHotkeyKeyCode = keyCode
+            ConfigManager.shared.doubleClickHotkeyModifiers = modifiers
+
+            self.doubleClickHotkeyTextField.stringValue = self.hotkeyStringFor(keyCode, modifiers: modifiers)
+            DebugLog.debug("Double click hotkey recorded: keyCode=\(keyCode), modifiers=\(modifiers)")
+        }
+    }
+
+    private func hotkeyStringFor(_ keyCode: UInt32, modifiers: UInt) -> String {
+        var result = ""
+
+        let modifierFlags = NSEvent.ModifierFlags(rawValue: modifiers)
+        if modifierFlags.contains(.command) {
+            result += "⌘"
+        }
+        if modifierFlags.contains(.option) {
+            result += "⌥"
+        }
+        if modifierFlags.contains(.control) {
+            result += "⌃"
+        }
+        if modifierFlags.contains(.shift) {
+            result += "⇧"
+        }
+
+        result += keyCharFor(keyCode)
+
+        return result
+    }
+
+    private func keyCharFor(_ keyCode: UInt32) -> String {
+        let keyMap: [UInt32: String] = [
+            0: "A", 1: "S", 2: "D", 3: "F", 4: "H", 5: "G", 6: "Z", 7: "X", 8: "C", 9: "V",
+            11: "B", 12: "Q", 13: "W", 14: "E", 15: "R", 16: "Y", 17: "T", 18: "1", 19: "2",
+            20: "3", 21: "4", 22: "6", 23: "5", 24: "=", 25: "9", 26: "7", 27: "-", 28: "8",
+            29: "0", 30: "]", 31: "O", 32: "U", 33: "[", 34: "I", 35: "P", 37: "L", 38: "J",
+            39: "'", 40: "K", 41: ";", 42: "\\", 43: ",", 44: "/", 45: "N", 46: "M", 47: ".",
+            50: "`", 65: "."
+        ]
+        return keyMap[keyCode] ?? "?"
     }
 
     @objc private func saveConfiguration() {
@@ -332,6 +519,8 @@ class SettingsViewController: NSViewController {
         ConfigManager.shared.tencentSecretId = secretId
         ConfigManager.shared.tencentSecretKey = secretKey
         ConfigManager.shared.tencentRegion = region
+
+        hotkeyManager?.reloadHotkeys()
 
         updateStatus("✓ 配置已保存", color: NSColor(hex: "#34C759"))
         DebugLog.debug("Configuration saved")

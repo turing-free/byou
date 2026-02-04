@@ -3,7 +3,7 @@ import AppKit
 import ApplicationServices
 
 class AppDelegate: NSObject, NSApplicationDelegate {
-    private var hotkeyManager: HotkeyManager?
+    var hotkeyManager: HotkeyManager?
     private let clipboardManager = ClipboardManager.shared
     private let mouseManager = MouseManager.shared
 
@@ -86,12 +86,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func openSettings() {
-        if settingsWindow != nil {
-            settingsWindow?.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
-            return
-        }
-
         let settingsVC = SettingsViewController()
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 380, height: 450),
@@ -101,6 +95,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         )
         window.title = "Settings"
         window.contentViewController = settingsVC
+        window.delegate = self
         window.center()
         window.isReleasedWhenClosed = false
 
@@ -110,7 +105,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         settingsWindow = window
 
-        DebugLog.debug("Settings window opened")
+        DebugLog.debug("Settings window opened, new instance created")
     }
 
     private func ensurePopoverInitialized() {
@@ -295,9 +290,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 extension AppDelegate: NSWindowDelegate {
     func windowWillClose(_ notification: Notification) {
         if let window = notification.object as? NSWindow, window == settingsWindow {
+            DebugLog.debug("Settings window closing")
+
+            window.delegate = nil
+
+            window.contentViewController = nil
+
             settingsWindow = nil
             NSApp.setActivationPolicy(.accessory)
-            DebugLog.debug("Settings window closed, restoring accessory mode")
+
+            DebugLog.debug("Settings window cleaned up")
         }
     }
 }
