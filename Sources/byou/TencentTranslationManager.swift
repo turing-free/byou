@@ -22,12 +22,12 @@ class TencentTranslationManager {
 
     func translate(_ text: String, sourceLang: String = "en", targetLang: String = "zh") async -> String? {
         guard !secretId.isEmpty && !secretKey.isEmpty else {
-            print("Tencent credentials not configured")
+            DebugLog.debug("Tencent credentials not configured")
             return nil
         }
 
         guard text.count <= 2000 else {
-            print("Text exceeds maximum length of 2000 heracters")
+            DebugLog.debug("Text exceeds maximum length of 2000 heracters")
             return nil
         }
 
@@ -35,7 +35,7 @@ class TencentTranslationManager {
             let result = try await performTranslation(text: text, source: sourceLang, target: targetLang)
             return result
         } catch {
-            print("Translation error: \(error.localizedDescription)")
+            DebugLog.debug("Translation error: \(error.localizedDescription)")
             return nil
         }
     }

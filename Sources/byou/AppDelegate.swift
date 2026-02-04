@@ -17,9 +17,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        print("byou started. Press Alt+S to capture selected content, Alt+X for double-click.")
+        DebugLog.debug("byou started. Press Alt+S to capture selected content, Alt+X for double-click.")
 
-        // Check accessibility permissions
         checkAccessibilityPermissions()
 
         anchorView = NSView(frame: NSRect(x: 0, y: 0, width: 1, height: 1))
@@ -31,9 +30,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         anchorWindow?.setFrameOrigin(NSPoint(x: -1000, y: -1000))
 
         if ConfigManager.shared.isTencentConfigured {
-            print("Tencent Translation API configured")
+            DebugLog.debug("Tencent Translation API configured")
         } else {
-            print("Tencent Translation API not configured. Configure credentials in settings.")
+            DebugLog.debug("Tencent Translation API not configured. Configure credentials in settings.")
         }
 
         hotkeyManager = HotkeyManager()
@@ -54,25 +53,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 
         guard let statusItem = statusItem else {
-            print("ERROR: Failed to create status item")
+            DebugLog.error("Failed to create status item")
             return
         }
 
-        print("Status item created successfully")
+        DebugLog.debug("Status item created successfully")
 
         if let button = statusItem.button {
-            print("Status button available")
+            DebugLog.debug("Status button available")
             if #available(macOS 11.0, *) {
                 if let image = NSImage(systemSymbolName: "globe", accessibilityDescription: "Translation") {
                     button.image = image
-                    print("Using system globe icon")
+                    DebugLog.debug("Using system globe icon")
                 } else {
                     button.title = "🌐"
-                    print("Using emoji icon")
+                    DebugLog.debug("Using emoji icon")
                 }
             } else {
                 button.title = "🌐"
-                print("Using emoji icon (macOS < 11)")
+                DebugLog.debug("Using emoji icon (macOS < 11)")
             }
         }
 
@@ -83,7 +82,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
 
         statusItem.menu = menu
-        print("Status bar menu configured")
+        DebugLog.debug("Status bar menu configured")
     }
 
     @objc private func openSettings() {
@@ -112,7 +111,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         settingsWindow = window
 
-        print("Settings window opened")
+        DebugLog.debug("Settings window opened")
     }
 
     private func ensurePopoverInitialized() {
@@ -193,11 +192,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     return
                 }
 
-                print("Selected content: \(clipboardContent)")
+                DebugLog.debug("Selected content: \(clipboardContent)")
 
                 Task {
                     let translation = await performTranslation(clipboardContent)
-                    print(translation)
+                    DebugLog.debug(translation)
 
                     // Ensure popover is created first
                     ensurePopoverInitialized()
@@ -215,7 +214,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func handleHotkeyX() {
         mouseManager.doubleClick()
-        print("Double-click simulated")
+        DebugLog.debug("Double-click simulated")
 
         Thread.sleep(forTimeInterval: 0.1)
 
@@ -226,11 +225,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     return
                 }
 
-                print("Selected content: \(clipboardContent)")
+                DebugLog.debug("Selected content: \(clipboardContent)")
 
                 Task {
                     let translation = await performTranslation(clipboardContent)
-                    print(translation)
+                    DebugLog.debug(translation)
 
                     // Ensure popover is created first
                     ensurePopoverInitialized()
@@ -259,9 +258,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let isTrusted = AXIsProcessTrustedWithOptions(options)
 
         if isTrusted {
-            print("Accessibility permissions granted")
+            DebugLog.debug("Accessibility permissions granted")
         } else {
-            print("Accessibility permissions not granted")
+            DebugLog.debug("Accessibility permissions not granted")
             showPermissionAlert()
         }
     }
@@ -297,7 +296,7 @@ extension AppDelegate: NSWindowDelegate {
         if let window = notification.object as? NSWindow, window == settingsWindow {
             settingsWindow = nil
             NSApp.setActivationPolicy(.accessory)
-            print("Settings window closed, restoring accessory mode")
+            DebugLog.debug("Settings window closed, restoring accessory mode")
         }
     }
 }

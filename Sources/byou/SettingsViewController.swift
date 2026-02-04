@@ -22,7 +22,7 @@ class SettingsViewController: NSViewController {
         super.viewDidAppear()
         if let window = view.window {
             window.makeFirstResponder(secretIdTextField)
-            print("Settings window appeared, setting first responder to Secret ID field")
+            DebugLog.debug("Settings window appeared, setting first responder to Secret ID field")
         }
     }
 
@@ -157,7 +157,7 @@ class SettingsViewController: NSViewController {
         ConfigManager.shared.tencentRegion = region
 
         updateStatus("Configuration saved successfully!", color: .systemGreen)
-        print("Configuration saved")
+        DebugLog.debug("Configuration saved")
     }
 
     @objc private func testConnection() {
@@ -166,7 +166,7 @@ class SettingsViewController: NSViewController {
 
         guard !secretId.isEmpty && !secretKey.isEmpty else {
             updateStatus("Please enter Secret ID and Secret Key", color: .systemRed)
-            print("Credentials empty")
+            DebugLog.debug("Credentials empty")
             return
         }
 
@@ -174,7 +174,7 @@ class SettingsViewController: NSViewController {
         saveButton.isEnabled = false
         testButton.isEnabled = false
 
-        print("Testing connection with credentials...")
+        DebugLog.debug("Testing connection with credentials...")
 
         Task {
             let tempManager = TencentTranslationManager()
@@ -190,10 +190,10 @@ class SettingsViewController: NSViewController {
 
                 if result != nil {
                     self.updateStatus("Connection test successful!", color: .systemGreen)
-                    print("Connection test succeeded")
+                    DebugLog.debug("Connection test succeeded")
                 } else {
                     self.updateStatus("Connection test failed. Please check your credentials.", color: .systemRed)
-                    print("Connection test failed")
+                    DebugLog.debug("Connection test failed")
                 }
             }
         }
@@ -201,7 +201,7 @@ class SettingsViewController: NSViewController {
 
     @objc private func closeWindow() {
         view.window?.close()
-        print("Settings window closed")
+        DebugLog.debug("Settings window closed")
     }
 
     private func updateStatus(_ message: String, color: NSColor) {

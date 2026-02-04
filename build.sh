@@ -1,8 +1,20 @@
 #!/bin/bash
 
-echo "Building byou..."
+BUILD_CONFIG="${1:-debug}"
 
-swift build
+if [[ "$BUILD_CONFIG" != "debug" && "$BUILD_CONFIG" != "release" ]]; then
+    echo "Error: Invalid build configuration '$BUILD_CONFIG'"
+    echo "Usage: $0 [debug|release]"
+    exit 1
+fi
+
+echo "Building byou ($BUILD_CONFIG)..."
+
+if [[ "$BUILD_CONFIG" == "release" ]]; then
+    swift build -c release
+else
+    swift build
+fi
 
 if [ $? -eq 0 ]; then
     echo "Build successful!"
@@ -23,7 +35,7 @@ if [ $? -eq 0 ]; then
     cp "Sources/byou/Info.plist" "$APP_CONTENTS/"
 
     # Copy executable to app bundle
-    cp ".build/debug/byou" "$APP_CONTENTS/MacOS/"
+    cp ".build/$BUILD_CONFIG/byou" "$APP_CONTENTS/MacOS/"
 
     # Set executable permissions
     chmod +x "$APP_CONTENTS/MacOS/byou"
