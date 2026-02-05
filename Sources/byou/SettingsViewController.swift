@@ -1,666 +1,678 @@
-import Cocoa
 import AppKit
+import Cocoa
 
 class SettingsViewController: NSViewController, NSTabViewDelegate {
 
-    private var secretIdTextField: NSTextField!
-    private var secretKeyTextField: NSSecureTextField!
-    private var regionComboBox: NSComboBox!
-    private var captureHotkeyTextField: RecordingTextField!
-    private var doubleClickHotkeyTextField: RecordingTextField!
+  private var secretIdTextField: NSTextField!
+  private var secretKeyTextField: NSSecureTextField!
+  private var regionComboBox: NSComboBox!
+  private var captureHotkeyTextField: RecordingTextField!
+  private var doubleClickHotkeyTextField: RecordingTextField!
 
-    private var testButton: NSButton!
-    private var resetHotkeyButton: NSButton!
-    private var statusLabel: NSTextField!
-    private var closeButton: NSButton!
+  private var testButton: NSButton!
+  private var resetHotkeyButton: NSButton!
+  private var statusLabel: NSTextField!
+  private var closeButton: NSButton!
 
-    private var headerContainer: NSView!
-    private var contentContainer: NSView!
-    private var footerContainer: NSView!
-    private var tabView: NSTabView!
+  private var headerContainer: NSView!
+  private var contentContainer: NSView!
+  private var footerContainer: NSView!
+  private var tabView: NSTabView!
 
-    private var hotkeyManager: HotkeyManager?
+  private var hotkeyManager: HotkeyManager?
 
-    override func loadView() {
-        view = NSView(frame: NSRect(x: 0, y: 0, width: 380, height: 410))
+  override func loadView() {
+    view = NSView(frame: NSRect(x: 0, y: 0, width: 380, height: 410))
 
-        setupUI()
-        loadCurrentSettings()
-    }
+    setupUI()
+    loadCurrentSettings()
+  }
 
-    override func viewDidAppear() {
-        super.viewDidAppear()
-        if let selectedTab = tabView.selectedTabViewItem {
-            if selectedTab.label == "快捷键配置" {
-                testButton.isHidden = true
-                resetHotkeyButton.isHidden = false
-            } else {
-                testButton.isHidden = false
-                resetHotkeyButton.isHidden = true
-            }
-        }
-    }
-
-    private func setupUI() {
-        setupHeaderView()
-        setupContentView()
-        setupFooterView()
-
-        NSLayoutConstraint.activate([
-            headerContainer.topAnchor.constraint(equalTo: view.topAnchor),
-            headerContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            headerContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            headerContainer.heightAnchor.constraint(equalToConstant: 60),
-
-            contentContainer.topAnchor.constraint(equalTo: headerContainer.bottomAnchor),
-            contentContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            contentContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            contentContainer.bottomAnchor.constraint(equalTo: footerContainer.topAnchor),
-
-            footerContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            footerContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            footerContainer.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            footerContainer.heightAnchor.constraint(equalToConstant: 60)
-        ])
-    }
-
-    private func setupHeaderView() {
-        headerContainer = NSView()
-        headerContainer.wantsLayer = true
-        headerContainer.translatesAutoresizingMaskIntoConstraints = false
-
-        let gradientLayer = CAGradientLayer()
-        gradientLayer.colors = [
-            NSColor(hex: "#667eea").cgColor,
-            NSColor(hex: "#764ba2").cgColor
-        ]
-        gradientLayer.startPoint = CGPoint(x: 0, y: 0)
-        gradientLayer.endPoint = CGPoint(x: 1, y: 1)
-        headerContainer.layer = gradientLayer
-
-        let iconImageView = NSImageView()
-        if #available(macOS 11.0, *) {
-            let config = NSImage.SymbolConfiguration(pointSize: 40, weight: .regular)
-            if let image = NSImage(systemSymbolName: "globe.asia.australia.fill", accessibilityDescription: nil) {
-                iconImageView.image = image.withSymbolConfiguration(config)
-            }
-        }
-        iconImageView.contentTintColor = .white
-        iconImageView.translatesAutoresizingMaskIntoConstraints = false
-
-        let titleLabel = NSTextField()
-        titleLabel.stringValue = "byou"
-        titleLabel.isEditable = false
-        titleLabel.isBordered = false
-        titleLabel.backgroundColor = .clear
-        titleLabel.font = NSFont.systemFont(ofSize: 26, weight: .bold)
-        titleLabel.textColor = .white
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
-
-        let contentStackView = NSStackView()
-        contentStackView.orientation = .horizontal
-        contentStackView.spacing = 10
-        contentStackView.alignment = .centerY
-        contentStackView.translatesAutoresizingMaskIntoConstraints = false
-
-        contentStackView.addArrangedSubview(iconImageView)
-        contentStackView.addArrangedSubview(titleLabel)
-
-        headerContainer.addSubview(contentStackView)
-
-        NSLayoutConstraint.activate([
-            iconImageView.widthAnchor.constraint(equalToConstant: 40),
-            iconImageView.heightAnchor.constraint(equalToConstant: 40),
-
-            contentStackView.centerXAnchor.constraint(equalTo: headerContainer.centerXAnchor),
-            contentStackView.centerYAnchor.constraint(equalTo: headerContainer.centerYAnchor),
-            contentStackView.heightAnchor.constraint(equalToConstant: 40)
-        ])
-
-        view.addSubview(headerContainer)
-    }
-
-    private func setupContentView() {
-        contentContainer = NSView()
-        contentContainer.wantsLayer = true
-        contentContainer.layer?.backgroundColor = NSColor(hex: "#F5F5F7").cgColor
-        contentContainer.translatesAutoresizingMaskIntoConstraints = false
-
-        tabView = NSTabView()
-        tabView.translatesAutoresizingMaskIntoConstraints = false
-        tabView.font = NSFont.systemFont(ofSize: 13)
-        tabView.tabViewType = .topTabsBezelBorder
-
-        let accountTab = createAccountTab()
-        let hotkeyTab = createHotkeyTab()
-
-        tabView.addTabViewItem(accountTab)
-        tabView.addTabViewItem(hotkeyTab)
-
-        tabView.delegate = self
-
-        contentContainer.addSubview(tabView)
-
-        NSLayoutConstraint.activate([
-            tabView.topAnchor.constraint(equalTo: contentContainer.topAnchor, constant: 20),
-            tabView.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 20),
-            tabView.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -20),
-            tabView.bottomAnchor.constraint(equalTo: contentContainer.bottomAnchor, constant: -20)
-        ])
-
-        view.addSubview(contentContainer)
-    }
-
-    private func setupFooterView() {
-        footerContainer = NSView()
-        footerContainer.wantsLayer = true
-        footerContainer.layer?.backgroundColor = .white
-        footerContainer.translatesAutoresizingMaskIntoConstraints = false
-
-        let divider = createDivider()
-        footerContainer.addSubview(divider)
-
-        statusLabel = NSTextField()
-        statusLabel.isEditable = false
-        statusLabel.isBordered = false
-        statusLabel.backgroundColor = .clear
-        statusLabel.font = NSFont.systemFont(ofSize: 12)
-        statusLabel.textColor = .secondaryLabelColor
-        statusLabel.stringValue = ""
-        statusLabel.translatesAutoresizingMaskIntoConstraints = false
-        footerContainer.addSubview(statusLabel)
-
-        testButton = NSButton(title: "Test Connection", target: self, action: #selector(testConnection))
-        testButton.bezelStyle = .rounded
-        testButton.translatesAutoresizingMaskIntoConstraints = false
-        footerContainer.addSubview(testButton)
-
-        resetHotkeyButton = NSButton(title: "Reset Hotkey", target: self, action: #selector(resetToDefaultHotkeys))
-        resetHotkeyButton.bezelStyle = .rounded
-        resetHotkeyButton.translatesAutoresizingMaskIntoConstraints = false
+  override func viewDidAppear() {
+    super.viewDidAppear()
+    if let selectedTab = tabView.selectedTabViewItem {
+      if selectedTab.label == "快捷键配置" {
+        testButton.isHidden = true
+        resetHotkeyButton.isHidden = false
+      } else {
+        testButton.isHidden = false
         resetHotkeyButton.isHidden = true
-        footerContainer.addSubview(resetHotkeyButton)
+      }
+    }
+  }
 
-        NSLayoutConstraint.activate([
-            divider.topAnchor.constraint(equalTo: footerContainer.topAnchor),
-            divider.leadingAnchor.constraint(equalTo: footerContainer.leadingAnchor, constant: 30),
-            divider.trailingAnchor.constraint(equalTo: footerContainer.trailingAnchor, constant: -30),
+  private func setupUI() {
+    setupHeaderView()
+    setupContentView()
+    setupFooterView()
 
-            statusLabel.leadingAnchor.constraint(equalTo: footerContainer.leadingAnchor, constant: 30),
-            statusLabel.centerYAnchor.constraint(equalTo: testButton.centerYAnchor),
+    NSLayoutConstraint.activate([
+      headerContainer.topAnchor.constraint(equalTo: view.topAnchor),
+      headerContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+      headerContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+      headerContainer.heightAnchor.constraint(equalToConstant: 60),
 
-            testButton.trailingAnchor.constraint(equalTo: footerContainer.trailingAnchor, constant: -30),
-            testButton.centerYAnchor.constraint(equalTo: footerContainer.centerYAnchor, constant: 2),
-            testButton.widthAnchor.constraint(equalToConstant: 130),
+      contentContainer.topAnchor.constraint(equalTo: headerContainer.bottomAnchor),
+      contentContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+      contentContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+      contentContainer.bottomAnchor.constraint(equalTo: footerContainer.topAnchor),
 
-            resetHotkeyButton.trailingAnchor.constraint(equalTo: footerContainer.trailingAnchor, constant: -30),
-            resetHotkeyButton.centerYAnchor.constraint(equalTo: footerContainer.centerYAnchor, constant: 2),
-            resetHotkeyButton.widthAnchor.constraint(equalToConstant: 130)
-        ])
+      footerContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+      footerContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+      footerContainer.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+      footerContainer.heightAnchor.constraint(equalToConstant: 60),
+    ])
+  }
 
-        view.addSubview(footerContainer)
+  private func setupHeaderView() {
+    headerContainer = NSView()
+    headerContainer.wantsLayer = true
+    headerContainer.translatesAutoresizingMaskIntoConstraints = false
+
+    let gradientLayer = CAGradientLayer()
+    gradientLayer.colors = [
+      NSColor(hex: "#667eea").cgColor,
+      NSColor(hex: "#764ba2").cgColor,
+    ]
+    gradientLayer.startPoint = CGPoint(x: 0, y: 0)
+    gradientLayer.endPoint = CGPoint(x: 1, y: 1)
+    headerContainer.layer = gradientLayer
+
+    let iconImageView = NSImageView()
+    if #available(macOS 11.0, *) {
+      let config = NSImage.SymbolConfiguration(pointSize: 40, weight: .regular)
+      if let image = NSImage(
+        systemSymbolName: "globe.asia.australia.fill", accessibilityDescription: nil)
+      {
+        iconImageView.image = image.withSymbolConfiguration(config)
+      }
+    }
+    iconImageView.contentTintColor = .white
+    iconImageView.translatesAutoresizingMaskIntoConstraints = false
+
+    let titleLabel = NSTextField()
+    titleLabel.stringValue = "byou"
+    titleLabel.isEditable = false
+    titleLabel.isBordered = false
+    titleLabel.backgroundColor = .clear
+    titleLabel.font = NSFont.systemFont(ofSize: 26, weight: .bold)
+    titleLabel.textColor = .white
+    titleLabel.translatesAutoresizingMaskIntoConstraints = false
+
+    let contentStackView = NSStackView()
+    contentStackView.orientation = .horizontal
+    contentStackView.spacing = 10
+    contentStackView.alignment = .centerY
+    contentStackView.translatesAutoresizingMaskIntoConstraints = false
+
+    contentStackView.addArrangedSubview(iconImageView)
+    contentStackView.addArrangedSubview(titleLabel)
+
+    headerContainer.addSubview(contentStackView)
+
+    NSLayoutConstraint.activate([
+      iconImageView.widthAnchor.constraint(equalToConstant: 40),
+      iconImageView.heightAnchor.constraint(equalToConstant: 40),
+
+      contentStackView.centerXAnchor.constraint(equalTo: headerContainer.centerXAnchor),
+      contentStackView.centerYAnchor.constraint(equalTo: headerContainer.centerYAnchor),
+      contentStackView.heightAnchor.constraint(equalToConstant: 40),
+    ])
+
+    view.addSubview(headerContainer)
+  }
+
+  private func setupContentView() {
+    contentContainer = NSView()
+    contentContainer.wantsLayer = true
+    contentContainer.layer?.backgroundColor = NSColor(hex: "#F5F5F7").cgColor
+    contentContainer.translatesAutoresizingMaskIntoConstraints = false
+
+    tabView = NSTabView()
+    tabView.translatesAutoresizingMaskIntoConstraints = false
+    tabView.font = NSFont.systemFont(ofSize: 13)
+    tabView.tabViewType = .topTabsBezelBorder
+
+    let accountTab = createAccountTab()
+    let hotkeyTab = createHotkeyTab()
+
+    tabView.addTabViewItem(accountTab)
+    tabView.addTabViewItem(hotkeyTab)
+
+    tabView.delegate = self
+
+    contentContainer.addSubview(tabView)
+
+    NSLayoutConstraint.activate([
+      tabView.topAnchor.constraint(equalTo: contentContainer.topAnchor, constant: 20),
+      tabView.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 20),
+      tabView.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -20),
+      tabView.bottomAnchor.constraint(equalTo: contentContainer.bottomAnchor, constant: -20),
+    ])
+
+    view.addSubview(contentContainer)
+  }
+
+  private func setupFooterView() {
+    footerContainer = NSView()
+    footerContainer.wantsLayer = true
+    footerContainer.layer?.backgroundColor = .white
+    footerContainer.translatesAutoresizingMaskIntoConstraints = false
+
+    let divider = createDivider()
+    footerContainer.addSubview(divider)
+
+    statusLabel = NSTextField()
+    statusLabel.isEditable = false
+    statusLabel.isBordered = false
+    statusLabel.backgroundColor = .clear
+    statusLabel.font = NSFont.systemFont(ofSize: 12)
+    statusLabel.textColor = .secondaryLabelColor
+    statusLabel.stringValue = ""
+    statusLabel.translatesAutoresizingMaskIntoConstraints = false
+    footerContainer.addSubview(statusLabel)
+
+    testButton = NSButton(title: "Test Connection", target: self, action: #selector(testConnection))
+    testButton.bezelStyle = .rounded
+    testButton.translatesAutoresizingMaskIntoConstraints = false
+    footerContainer.addSubview(testButton)
+
+    resetHotkeyButton = NSButton(
+      title: "Reset Hotkey", target: self, action: #selector(resetToDefaultHotkeys))
+    resetHotkeyButton.bezelStyle = .rounded
+    resetHotkeyButton.translatesAutoresizingMaskIntoConstraints = false
+    resetHotkeyButton.isHidden = true
+    footerContainer.addSubview(resetHotkeyButton)
+
+    NSLayoutConstraint.activate([
+      divider.topAnchor.constraint(equalTo: footerContainer.topAnchor),
+      divider.leadingAnchor.constraint(equalTo: footerContainer.leadingAnchor, constant: 30),
+      divider.trailingAnchor.constraint(equalTo: footerContainer.trailingAnchor, constant: -30),
+
+      statusLabel.leadingAnchor.constraint(equalTo: footerContainer.leadingAnchor, constant: 30),
+      statusLabel.centerYAnchor.constraint(equalTo: testButton.centerYAnchor),
+
+      testButton.trailingAnchor.constraint(equalTo: footerContainer.trailingAnchor, constant: -30),
+      testButton.centerYAnchor.constraint(equalTo: footerContainer.centerYAnchor, constant: 2),
+      testButton.widthAnchor.constraint(equalToConstant: 130),
+
+      resetHotkeyButton.trailingAnchor.constraint(
+        equalTo: footerContainer.trailingAnchor, constant: -30),
+      resetHotkeyButton.centerYAnchor.constraint(
+        equalTo: footerContainer.centerYAnchor, constant: 2),
+      resetHotkeyButton.widthAnchor.constraint(equalToConstant: 130),
+    ])
+
+    view.addSubview(footerContainer)
+  }
+
+  private func createGroupLabel(_ text: String) -> NSTextField {
+    let label = NSTextField()
+    label.stringValue = text
+    label.isEditable = false
+    label.isBordered = false
+    label.backgroundColor = .clear
+    label.font = NSFont.systemFont(ofSize: 12, weight: .medium)
+    label.textColor = NSColor.secondaryLabelColor
+    label.translatesAutoresizingMaskIntoConstraints = false
+    return label
+  }
+
+  private func createAccountTab() -> NSTabViewItem {
+    let tabItem = NSTabViewItem(identifier: "account" as NSString)
+    tabItem.label = "账号配置"
+
+    let containerView = NSView()
+    containerView.translatesAutoresizingMaskIntoConstraints = false
+
+    let stackView = NSStackView()
+    stackView.orientation = .vertical
+    stackView.spacing = 15
+    stackView.translatesAutoresizingMaskIntoConstraints = false
+    stackView.alignment = .leading
+
+    let groupTitle = createGroupLabel("账号配置")
+    stackView.addArrangedSubview(groupTitle)
+
+    let divider1 = createDivider()
+    stackView.addArrangedSubview(divider1)
+
+    stackView.addArrangedSubview(createFormLabel("Secret ID", icon: "key.fill"))
+    secretIdTextField = createTextField(placeholder: "Tencent Cloud Secret ID", icon: "key.fill")
+    stackView.addArrangedSubview(secretIdTextField)
+
+    stackView.addArrangedSubview(createFormLabel("Secret Key", icon: "lock.fill"))
+    secretKeyTextField = createSecureTextField(
+      placeholder: "Tencent Cloud Secret Key", icon: "lock.fill")
+    stackView.addArrangedSubview(secretKeyTextField)
+
+    stackView.addArrangedSubview(createFormLabel("Region", icon: "globe"))
+    regionComboBox = createComboBox(
+      items: [
+        "ap-chengdu", "ap-guangzhou", "ap-shanghai", "ap-beijing", "ap-singapore", "us-east-1",
+      ], icon: "globe")
+    stackView.addArrangedSubview(regionComboBox)
+
+    containerView.addSubview(stackView)
+
+    NSLayoutConstraint.activate([
+      stackView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 2),
+      stackView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 20),
+      stackView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -20),
+      stackView.heightAnchor.constraint(equalToConstant: 238),
+
+      containerView.heightAnchor.constraint(equalToConstant: 250),
+    ])
+
+    tabItem.view = containerView
+
+    return tabItem
+  }
+
+  private func createHotkeyTab() -> NSTabViewItem {
+    let tabItem = NSTabViewItem(identifier: "hotkey" as NSString)
+    tabItem.label = "快捷键配置"
+
+    let containerView = NSView()
+    containerView.translatesAutoresizingMaskIntoConstraints = false
+
+    let stackView = NSStackView()
+    stackView.orientation = .vertical
+    stackView.spacing = 15
+    stackView.translatesAutoresizingMaskIntoConstraints = false
+    stackView.alignment = .leading
+
+    let groupTitle = createGroupLabel("快捷键配置")
+    stackView.addArrangedSubview(groupTitle)
+
+    let divider1 = createDivider()
+    stackView.addArrangedSubview(divider1)
+
+    stackView.addArrangedSubview(createFormLabel("捕获已选中文本", icon: "command"))
+    captureHotkeyTextField = createRecordingTextField(placeholder: "点击此处录制快捷键", icon: "command")
+    stackView.addArrangedSubview(captureHotkeyTextField)
+
+    stackView.addArrangedSubview(createFormLabel("捕获鼠标下单词", icon: "keyboard"))
+    doubleClickHotkeyTextField = createRecordingTextField(
+      placeholder: "点击此处录制快捷键", icon: "keyboard")
+    stackView.addArrangedSubview(doubleClickHotkeyTextField)
+
+    let infoLabel = NSTextField()
+    infoLabel.stringValue = "点击输入框后，按下想要设置的快捷键组合"
+    infoLabel.isEditable = false
+    infoLabel.isBordered = false
+    infoLabel.backgroundColor = .clear
+    infoLabel.font = NSFont.systemFont(ofSize: 11)
+    infoLabel.textColor = .secondaryLabelColor
+    infoLabel.translatesAutoresizingMaskIntoConstraints = false
+    stackView.addArrangedSubview(infoLabel)
+
+    containerView.addSubview(stackView)
+
+    NSLayoutConstraint.activate([
+      stackView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 2),
+      stackView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 20),
+      stackView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -20),
+      stackView.heightAnchor.constraint(equalToConstant: 238),
+
+      containerView.heightAnchor.constraint(equalToConstant: 250),
+    ])
+
+    tabItem.view = containerView
+
+    return tabItem
+  }
+
+  private func createFormLabel(_ text: String, icon: String) -> NSTextField {
+    let container = NSStackView()
+    container.orientation = .horizontal
+    container.spacing = 6
+    container.translatesAutoresizingMaskIntoConstraints = false
+
+    let iconView = NSImageView()
+    if #available(macOS 11.0, *) {
+      let config = NSImage.SymbolConfiguration(pointSize: 13, weight: .regular)
+      if let image = NSImage(systemSymbolName: icon, accessibilityDescription: nil) {
+        iconView.image = image.withSymbolConfiguration(config)
+      }
+    }
+    iconView.contentTintColor = .secondaryLabelColor
+    iconView.translatesAutoresizingMaskIntoConstraints = false
+
+    let label = NSTextField()
+    label.stringValue = text
+    label.isEditable = false
+    label.isBordered = false
+    label.backgroundColor = .clear
+    label.font = NSFont.systemFont(ofSize: 13)
+    label.textColor = .labelColor
+    label.translatesAutoresizingMaskIntoConstraints = false
+
+    container.addArrangedSubview(iconView)
+    container.addArrangedSubview(label)
+
+    NSLayoutConstraint.activate([
+      iconView.widthAnchor.constraint(equalToConstant: 16),
+      iconView.heightAnchor.constraint(equalToConstant: 16),
+    ])
+
+    let wrapper = NSView()
+    wrapper.translatesAutoresizingMaskIntoConstraints = false
+    wrapper.addSubview(container)
+
+    NSLayoutConstraint.activate([
+      container.topAnchor.constraint(equalTo: wrapper.topAnchor),
+      container.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor),
+      container.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor),
+      container.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor),
+      wrapper.heightAnchor.constraint(equalToConstant: 20),
+    ])
+
+    return label
+  }
+
+  private func createTextField(placeholder: String, icon: String) -> NSTextField {
+    let textField = NSTextField()
+    textField.placeholderString = placeholder
+    textField.translatesAutoresizingMaskIntoConstraints = false
+    textField.widthAnchor.constraint(equalToConstant: 320).isActive = true
+    textField.isEditable = true
+    textField.isSelectable = true
+    textField.wantsLayer = true
+    textField.layer?.cornerRadius = 6
+    textField.layer?.borderWidth = 1
+    textField.layer?.borderColor = NSColor(hex: "#DDDDDD").cgColor
+    textField.focusRingType = .none
+
+    return textField
+  }
+
+  private func createRecordingTextField(placeholder: String, icon: String) -> RecordingTextField {
+    let textField = RecordingTextField()
+    textField.placeholderString = placeholder
+    textField.translatesAutoresizingMaskIntoConstraints = false
+    textField.widthAnchor.constraint(equalToConstant: 320).isActive = true
+    textField.isEditable = false
+    textField.isSelectable = true
+    textField.wantsLayer = true
+    textField.layer?.cornerRadius = 6
+    textField.layer?.borderWidth = 1
+    textField.layer?.borderColor = NSColor(hex: "#DDDDDD").cgColor
+    textField.focusRingType = .none
+
+    return textField
+  }
+
+  private func createSecureTextField(placeholder: String, icon: String) -> NSSecureTextField {
+    let textField = NSSecureTextField()
+    textField.placeholderString = placeholder
+    textField.translatesAutoresizingMaskIntoConstraints = false
+    textField.widthAnchor.constraint(equalToConstant: 320).isActive = true
+    textField.isEditable = true
+    textField.isSelectable = true
+    textField.wantsLayer = true
+    textField.layer?.cornerRadius = 6
+    textField.layer?.borderWidth = 1
+    textField.layer?.borderColor = NSColor(hex: "#DDDDDD").cgColor
+    textField.focusRingType = .none
+
+    return textField
+  }
+
+  private func createComboBox(items: [String], icon: String) -> NSComboBox {
+    let comboBox = NSComboBox()
+    comboBox.addItems(withObjectValues: items)
+    comboBox.translatesAutoresizingMaskIntoConstraints = false
+    comboBox.widthAnchor.constraint(equalToConstant: 320).isActive = true
+    comboBox.wantsLayer = true
+    comboBox.layer?.cornerRadius = 6
+    comboBox.layer?.borderWidth = 1
+    comboBox.layer?.borderColor = NSColor(hex: "#DDDDDD").cgColor
+    return comboBox
+  }
+
+  private func createDivider() -> NSView {
+    let divider = NSView()
+    divider.wantsLayer = true
+    divider.layer?.backgroundColor = NSColor(hex: "#E0E0E0").cgColor
+    divider.translatesAutoresizingMaskIntoConstraints = false
+    divider.heightAnchor.constraint(equalToConstant: 1).isActive = true
+    return divider
+  }
+
+  private func loadCurrentSettings() {
+    secretIdTextField.stringValue = ConfigManager.shared.tencentSecretId
+    secretKeyTextField.stringValue = ConfigManager.shared.tencentSecretKey
+    regionComboBox.stringValue = ConfigManager.shared.tencentRegion
+
+    captureHotkeyTextField.stringValue = hotkeyStringFor(
+      ConfigManager.shared.captureHotkeyKeyCode,
+      modifiers: ConfigManager.shared.captureHotkeyModifiers)
+    doubleClickHotkeyTextField.stringValue = hotkeyStringFor(
+      ConfigManager.shared.doubleClickHotkeyKeyCode,
+      modifiers: ConfigManager.shared.doubleClickHotkeyModifiers)
+
+    setupHotkeyRecording()
+  }
+
+  private func setupHotkeyRecording() {
+    captureHotkeyTextField.setOnClick { [weak self] in
+      self?.captureHotkeyTextFieldClicked()
     }
 
-    private func createGroupLabel(_ text: String) -> NSTextField {
-        let label = NSTextField()
-        label.stringValue = text
-        label.isEditable = false
-        label.isBordered = false
-        label.backgroundColor = .clear
-        label.font = NSFont.systemFont(ofSize: 12, weight: .medium)
-        label.textColor = NSColor.secondaryLabelColor
-        label.translatesAutoresizingMaskIntoConstraints = false
-        return label
+    doubleClickHotkeyTextField.setOnClick { [weak self] in
+      self?.doubleClickHotkeyTextFieldClicked()
     }
 
-    private func createAccountTab() -> NSTabViewItem {
-        let tabItem = NSTabViewItem(identifier: "account" as NSString)
-        tabItem.label = "账号配置"
+    if let appDelegate = NSApp.delegate as? AppDelegate {
+      hotkeyManager = appDelegate.hotkeyManager
+    }
+  }
 
-        let containerView = NSView()
-        containerView.translatesAutoresizingMaskIntoConstraints = false
+  deinit {
+    DebugLog.debug("SettingsViewController deinit, cleaning up resources")
 
-        let stackView = NSStackView()
-        stackView.orientation = .vertical
-        stackView.spacing = 15
-        stackView.translatesAutoresizingMaskIntoConstraints = false
-        stackView.alignment = .leading
+    captureHotkeyTextField?.stopRecording()
+    doubleClickHotkeyTextField?.stopRecording()
+    hotkeyManager = nil
 
-        let groupTitle = createGroupLabel("账号配置")
-        stackView.addArrangedSubview(groupTitle)
+    DebugLog.debug("SettingsViewController resources cleaned up")
+  }
 
-        let divider1 = createDivider()
-        stackView.addArrangedSubview(divider1)
+  @objc private func captureHotkeyTextFieldClicked() {
+    captureHotkeyTextField.startRecording { [weak self] (keyCode, modifiers) in
+      guard let self = self else { return }
 
-        stackView.addArrangedSubview(createFormLabel("Secret ID", icon: "key.fill"))
-        secretIdTextField = createTextField(placeholder: "Tencent Cloud Secret ID", icon: "key.fill")
-        stackView.addArrangedSubview(secretIdTextField)
+      let doubleClickKeyCode = ConfigManager.shared.doubleClickHotkeyKeyCode
+      let doubleClickModifiers = ConfigManager.shared.doubleClickHotkeyModifiers
 
-        stackView.addArrangedSubview(createFormLabel("Secret Key", icon: "lock.fill"))
-        secretKeyTextField = createSecureTextField(placeholder: "Tencent Cloud Secret Key", icon: "lock.fill")
-        stackView.addArrangedSubview(secretKeyTextField)
+      if keyCode == doubleClickKeyCode && modifiers == doubleClickModifiers {
+        self.updateStatus("✕ 此快捷键已被占用", color: NSColor(hex: "#FF3B30"))
+        DebugLog.debug("Capture hotkey conflicts with double click hotkey")
+        return
+      }
 
-        stackView.addArrangedSubview(createFormLabel("Region", icon: "globe"))
-        regionComboBox = createComboBox(items: ["ap-chengdu", "ap-guangzhou", "ap-shanghai", "ap-beijing", "ap-singapore", "us-east-1"], icon: "globe")
-        stackView.addArrangedSubview(regionComboBox)
+      ConfigManager.shared.captureHotkeyKeyCode = keyCode
+      ConfigManager.shared.captureHotkeyModifiers = modifiers
 
-        containerView.addSubview(stackView)
+      self.captureHotkeyTextField.stringValue = self.hotkeyStringFor(keyCode, modifiers: modifiers)
+      self.hotkeyManager?.reloadHotkeys()
+      self.updateStatus("✓ 快捷键已保存", color: NSColor(hex: "#34C759"))
+      DebugLog.debug("Capture hotkey recorded: keyCode=\(keyCode), modifiers=\(modifiers)")
+    }
+  }
 
-        NSLayoutConstraint.activate([
-            stackView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 2),
-            stackView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 20),
-            stackView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -20),
-            stackView.heightAnchor.constraint(equalToConstant: 238),
+  @objc private func doubleClickHotkeyTextFieldClicked() {
+    doubleClickHotkeyTextField.startRecording { [weak self] (keyCode, modifiers) in
+      guard let self = self else { return }
 
-            containerView.heightAnchor.constraint(equalToConstant: 250)
-        ])
+      let captureKeyCode = ConfigManager.shared.captureHotkeyKeyCode
+      let captureModifiers = ConfigManager.shared.captureHotkeyModifiers
 
-        tabItem.view = containerView
+      if keyCode == captureKeyCode && modifiers == captureModifiers {
+        self.updateStatus("✕ 此快捷键已被占用", color: NSColor(hex: "#FF3B30"))
+        DebugLog.debug("Double click hotkey conflicts with capture hotkey")
+        return
+      }
 
-        return tabItem
+      ConfigManager.shared.doubleClickHotkeyKeyCode = keyCode
+      ConfigManager.shared.doubleClickHotkeyModifiers = modifiers
+
+      self.doubleClickHotkeyTextField.stringValue = self.hotkeyStringFor(
+        keyCode, modifiers: modifiers)
+      self.hotkeyManager?.reloadHotkeys()
+      self.updateStatus("✓ 快捷键已保存", color: NSColor(hex: "#34C759"))
+      DebugLog.debug("Double click hotkey recorded: keyCode=\(keyCode), modifiers=\(modifiers)")
+    }
+  }
+
+  private func hotkeyStringFor(_ keyCode: UInt32, modifiers: UInt) -> String {
+    var result = ""
+
+    let modifierFlags = NSEvent.ModifierFlags(rawValue: modifiers)
+    if modifierFlags.contains(.command) {
+      result += "⌘"
+    }
+    if modifierFlags.contains(.option) {
+      result += "⌥"
+    }
+    if modifierFlags.contains(.control) {
+      result += "⌃"
+    }
+    if modifierFlags.contains(.shift) {
+      result += "⇧"
     }
 
-    private func createHotkeyTab() -> NSTabViewItem {
-        let tabItem = NSTabViewItem(identifier: "hotkey" as NSString)
-        tabItem.label = "快捷键配置"
+    result += keyCharFor(keyCode)
 
-        let containerView = NSView()
-        containerView.translatesAutoresizingMaskIntoConstraints = false
+    return result
+  }
 
-        let stackView = NSStackView()
-        stackView.orientation = .vertical
-        stackView.spacing = 15
-        stackView.translatesAutoresizingMaskIntoConstraints = false
-        stackView.alignment = .leading
+  private func keyCharFor(_ keyCode: UInt32) -> String {
+    let keyMap: [UInt32: String] = [
+      0: "A", 1: "S", 2: "D", 3: "F", 4: "H", 5: "G", 6: "Z", 7: "X", 8: "C", 9: "V",
+      11: "B", 12: "Q", 13: "W", 14: "E", 15: "R", 16: "Y", 17: "T", 18: "1", 19: "2",
+      20: "3", 21: "4", 22: "6", 23: "5", 24: "=", 25: "9", 26: "7", 27: "-", 28: "8",
+      29: "0", 30: "]", 31: "O", 32: "U", 33: "[", 34: "I", 35: "P", 37: "L", 38: "J",
+      39: "'", 40: "K", 41: ";", 42: "\\", 43: ",", 44: "/", 45: "N", 46: "M", 47: ".",
+      50: "`", 65: ".",
+    ]
+    return keyMap[keyCode] ?? "?"
+  }
 
-        let groupTitle = createGroupLabel("快捷键配置")
-        stackView.addArrangedSubview(groupTitle)
+  @objc private func testConnection() {
+    let secretId = secretIdTextField.stringValue.trimmingCharacters(in: .whitespaces)
+    let secretKey = secretKeyTextField.stringValue.trimmingCharacters(in: .whitespaces)
+    let region = regionComboBox.stringValue
 
-        let divider1 = createDivider()
-        stackView.addArrangedSubview(divider1)
-
-        stackView.addArrangedSubview(createFormLabel("捕获已选中文本", icon: "command"))
-        captureHotkeyTextField = createRecordingTextField(placeholder: "点击此处录制快捷键", icon: "command")
-        stackView.addArrangedSubview(captureHotkeyTextField)
-
-        stackView.addArrangedSubview(createFormLabel("捕获鼠标下单词", icon: "keyboard"))
-        doubleClickHotkeyTextField = createRecordingTextField(placeholder: "点击此处录制快捷键", icon: "keyboard")
-        stackView.addArrangedSubview(doubleClickHotkeyTextField)
-
-        let infoLabel = NSTextField()
-        infoLabel.stringValue = "点击输入框后，按下想要设置的快捷键组合"
-        infoLabel.isEditable = false
-        infoLabel.isBordered = false
-        infoLabel.backgroundColor = .clear
-        infoLabel.font = NSFont.systemFont(ofSize: 11)
-        infoLabel.textColor = .secondaryLabelColor
-        infoLabel.translatesAutoresizingMaskIntoConstraints = false
-        stackView.addArrangedSubview(infoLabel)
-
-        containerView.addSubview(stackView)
-
-        NSLayoutConstraint.activate([
-            stackView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 2),
-            stackView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 20),
-            stackView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -20),
-            stackView.heightAnchor.constraint(equalToConstant: 238),
-
-            containerView.heightAnchor.constraint(equalToConstant: 250)
-        ])
-
-        tabItem.view = containerView
-
-        return tabItem
+    guard !secretId.isEmpty && !secretKey.isEmpty else {
+      updateStatus("✕ 请输入 Secret ID 和 Secret Key", color: NSColor(hex: "#FF3B30"))
+      DebugLog.debug("Credentials empty")
+      return
     }
 
-    private func createFormLabel(_ text: String, icon: String) -> NSTextField {
-        let container = NSStackView()
-        container.orientation = .horizontal
-        container.spacing = 6
-        container.translatesAutoresizingMaskIntoConstraints = false
+    updateStatus("⟳ 测试连接中...", color: NSColor(hex: "#007AFF"))
+    testButton.isEnabled = false
 
-        let iconView = NSImageView()
-        if #available(macOS 11.0, *) {
-            let config = NSImage.SymbolConfiguration(pointSize: 13, weight: .regular)
-            if let image = NSImage(systemSymbolName: icon, accessibilityDescription: nil) {
-                iconView.image = image.withSymbolConfiguration(config)
-            }
+    DebugLog.debug("Testing with credentials...")
+
+    Task {
+      let tempManager = TencentTranslationManager()
+
+      ConfigManager.shared.tencentSecretId = secretId
+      ConfigManager.shared.tencentSecretKey = secretKey
+      ConfigManager.shared.tencentRegion = region
+
+      let result = await tempManager.translate("Hello", sourceLang: "en", targetLang: "zh")
+
+      await MainActor.run {
+        self.testButton.isEnabled = true
+
+        if result != nil {
+          self.hotkeyManager?.reloadHotkeys()
+          self.updateStatus("✓ 测试成功，配置已自动保存", color: NSColor(hex: "#34C759"))
+          DebugLog.debug("test succeeded and configuration saved")
+        } else {
+          self.updateStatus("✕ 测试失败，请检查凭证", color: NSColor(hex: "#FF3B30"))
+          DebugLog.debug("test failed")
         }
-        iconView.contentTintColor = .secondaryLabelColor
-        iconView.translatesAutoresizingMaskIntoConstraints = false
+      }
+    }
+  }
 
-        let label = NSTextField()
-        label.stringValue = text
-        label.isEditable = false
-        label.isBordered = false
-        label.backgroundColor = .clear
-        label.font = NSFont.systemFont(ofSize: 13)
-        label.textColor = .labelColor
-        label.translatesAutoresizingMaskIntoConstraints = false
+  @objc private func resetToDefaultHotkeys() {
+    ConfigManager.shared.resetHotkeys()
 
-        container.addArrangedSubview(iconView)
-        container.addArrangedSubview(label)
+    captureHotkeyTextField.stringValue = hotkeyStringFor(
+      ConfigManager.shared.captureHotkeyKeyCode,
+      modifiers: ConfigManager.shared.captureHotkeyModifiers)
+    doubleClickHotkeyTextField.stringValue = hotkeyStringFor(
+      ConfigManager.shared.doubleClickHotkeyKeyCode,
+      modifiers: ConfigManager.shared.doubleClickHotkeyModifiers)
 
-        NSLayoutConstraint.activate([
-            iconView.widthAnchor.constraint(equalToConstant: 16),
-            iconView.heightAnchor.constraint(equalToConstant: 16)
-        ])
+    hotkeyManager?.reloadHotkeys()
 
-        let wrapper = NSView()
-        wrapper.translatesAutoresizingMaskIntoConstraints = false
-        wrapper.addSubview(container)
+    updateStatus("✓ 已恢复默认快捷键", color: NSColor(hex: "#34C759"))
+    DebugLog.debug("Hotkeys reset to defaults")
+  }
 
-        NSLayoutConstraint.activate([
-            container.topAnchor.constraint(equalTo: wrapper.topAnchor),
-            container.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor),
-            container.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor),
-            container.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor),
-            wrapper.heightAnchor.constraint(equalToConstant: 20)
-        ])
+  @objc private func closeWindow() {
+    view.window?.close()
+    DebugLog.debug("Settings window closed")
+  }
 
-        return label
+  private func updateStatus(_ message: String, color: NSColor) {
+    statusLabel.stringValue = message
+    statusLabel.textColor = color
+  }
+
+  // MARK: - NSTabViewDelegate
+
+  func tabView(_ tabView: NSTabView, willSelect tabViewItem: NSTabViewItem?) {
+    guard let tabViewItem = tabViewItem else { return }
+
+    if tabViewItem.label == "账号配置" {
+      testButton.isHidden = false
+      resetHotkeyButton.isHidden = true
+    } else if tabViewItem.label == "快捷键配置" {
+      testButton.isHidden = true
+      resetHotkeyButton.isHidden = false
+      updateStatus("", color: NSColor.secondaryLabelColor)
     }
 
-    private func createTextField(placeholder: String, icon: String) -> NSTextField {
-        let textField = NSTextField()
-        textField.placeholderString = placeholder
-        textField.translatesAutoresizingMaskIntoConstraints = false
-        textField.widthAnchor.constraint(equalToConstant: 320).isActive = true
-        textField.isEditable = true
-        textField.isSelectable = true
-        textField.wantsLayer = true
-        textField.layer?.cornerRadius = 6
-        textField.layer?.borderWidth = 1
-        textField.layer?.borderColor = NSColor(hex: "#DDDDDD").cgColor
-        textField.focusRingType = .none
-
-        return textField
+    if let containerView = tabViewItem.view {
+      containerView.translatesAutoresizingMaskIntoConstraints = true
+      containerView.frame = NSRect(x: 10, y: 33, width: 360, height: 250)
     }
+  }
 
-    private func createRecordingTextField(placeholder: String, icon: String) -> RecordingTextField {
-        let textField = RecordingTextField()
-        textField.placeholderString = placeholder
-        textField.translatesAutoresizingMaskIntoConstraints = false
-        textField.widthAnchor.constraint(equalToConstant: 320).isActive = true
-        textField.isEditable = false
-        textField.isSelectable = true
-        textField.wantsLayer = true
-        textField.layer?.cornerRadius = 6
-        textField.layer?.borderWidth = 1
-        textField.layer?.borderColor = NSColor(hex: "#DDDDDD").cgColor
-        textField.focusRingType = .none
-
-        return textField
-    }
-
-    private func createSecureTextField(placeholder: String, icon: String) -> NSSecureTextField {
-        let textField = NSSecureTextField()
-        textField.placeholderString = placeholder
-        textField.translatesAutoresizingMaskIntoConstraints = false
-        textField.widthAnchor.constraint(equalToConstant: 320).isActive = true
-        textField.isEditable = true
-        textField.isSelectable = true
-        textField.wantsLayer = true
-        textField.layer?.cornerRadius = 6
-        textField.layer?.borderWidth = 1
-        textField.layer?.borderColor = NSColor(hex: "#DDDDDD").cgColor
-        textField.focusRingType = .none
-
-        return textField
-    }
-
-    private func createComboBox(items: [String], icon: String) -> NSComboBox {
-        let comboBox = NSComboBox()
-        comboBox.addItems(withObjectValues: items)
-        comboBox.translatesAutoresizingMaskIntoConstraints = false
-        comboBox.widthAnchor.constraint(equalToConstant: 320).isActive = true
-        comboBox.wantsLayer = true
-        comboBox.layer?.cornerRadius = 6
-        comboBox.layer?.borderWidth = 1
-        comboBox.layer?.borderColor = NSColor(hex: "#DDDDDD").cgColor
-        return comboBox
-    }
-
-    private func createDivider() -> NSView {
-        let divider = NSView()
-        divider.wantsLayer = true
-        divider.layer?.backgroundColor = NSColor(hex: "#E0E0E0").cgColor
-        divider.translatesAutoresizingMaskIntoConstraints = false
-        divider.heightAnchor.constraint(equalToConstant: 1).isActive = true
-        return divider
-    }
-
-    private func loadCurrentSettings() {
-        secretIdTextField.stringValue = ConfigManager.shared.tencentSecretId
-        secretKeyTextField.stringValue = ConfigManager.shared.tencentSecretKey
-        regionComboBox.stringValue = ConfigManager.shared.tencentRegion
-
-        captureHotkeyTextField.stringValue = hotkeyStringFor(ConfigManager.shared.captureHotkeyKeyCode,
-                                                               modifiers: ConfigManager.shared.captureHotkeyModifiers)
-        doubleClickHotkeyTextField.stringValue = hotkeyStringFor(ConfigManager.shared.doubleClickHotkeyKeyCode,
-                                                                  modifiers: ConfigManager.shared.doubleClickHotkeyModifiers)
-
-        setupHotkeyRecording()
-    }
-
-    private func setupHotkeyRecording() {
-        captureHotkeyTextField.setOnClick { [weak self] in
-            self?.captureHotkeyTextFieldClicked()
-        }
-
-        doubleClickHotkeyTextField.setOnClick { [weak self] in
-            self?.doubleClickHotkeyTextFieldClicked()
-        }
-
-        if let appDelegate = NSApp.delegate as? AppDelegate {
-            hotkeyManager = appDelegate.hotkeyManager
-        }
-    }
-
-    deinit {
-        DebugLog.debug("SettingsViewController deinit, cleaning up resources")
-
-        captureHotkeyTextField?.stopRecording()
-        doubleClickHotkeyTextField?.stopRecording()
-        hotkeyManager = nil
-
-        DebugLog.debug("SettingsViewController resources cleaned up")
-    }
-
-    @objc private func captureHotkeyTextFieldClicked() {
-        captureHotkeyTextField.startRecording { [weak self] (keyCode, modifiers) in
-            guard let self = self else { return }
-
-            let doubleClickKeyCode = ConfigManager.shared.doubleClickHotkeyKeyCode
-            let doubleClickModifiers = ConfigManager.shared.doubleClickHotkeyModifiers
-
-            if keyCode == doubleClickKeyCode && modifiers == doubleClickModifiers {
-                self.updateStatus("✕ 此快捷键已被占用", color: NSColor(hex: "#FF3B30"))
-                DebugLog.debug("Capture hotkey conflicts with double click hotkey")
-                return
-            }
-
-            ConfigManager.shared.captureHotkeyKeyCode = keyCode
-            ConfigManager.shared.captureHotkeyModifiers = modifiers
-
-            self.captureHotkeyTextField.stringValue = self.hotkeyStringFor(keyCode, modifiers: modifiers)
-            self.hotkeyManager?.reloadHotkeys()
-            self.updateStatus("✓ 快捷键已保存", color: NSColor(hex: "#34C759"))
-            DebugLog.debug("Capture hotkey recorded: keyCode=\(keyCode), modifiers=\(modifiers)")
-        }
-    }
-
-    @objc private func doubleClickHotkeyTextFieldClicked() {
-        doubleClickHotkeyTextField.startRecording { [weak self] (keyCode, modifiers) in
-            guard let self = self else { return }
-
-            let captureKeyCode = ConfigManager.shared.captureHotkeyKeyCode
-            let captureModifiers = ConfigManager.shared.captureHotkeyModifiers
-
-            if keyCode == captureKeyCode && modifiers == captureModifiers {
-                self.updateStatus("✕ 此快捷键已被占用", color: NSColor(hex: "#FF3B30"))
-                DebugLog.debug("Double click hotkey conflicts with capture hotkey")
-                return
-            }
-
-            ConfigManager.shared.doubleClickHotkeyKeyCode = keyCode
-            ConfigManager.shared.doubleClickHotkeyModifiers = modifiers
-
-            self.doubleClickHotkeyTextField.stringValue = self.hotkeyStringFor(keyCode, modifiers: modifiers)
-            self.hotkeyManager?.reloadHotkeys()
-            self.updateStatus("✓ 快捷键已保存", color: NSColor(hex: "#34C759"))
-            DebugLog.debug("Double click hotkey recorded: keyCode=\(keyCode), modifiers=\(modifiers)")
-        }
-    }
-
-    private func hotkeyStringFor(_ keyCode: UInt32, modifiers: UInt) -> String {
-        var result = ""
-
-        let modifierFlags = NSEvent.ModifierFlags(rawValue: modifiers)
-        if modifierFlags.contains(.command) {
-            result += "⌘"
-        }
-        if modifierFlags.contains(.option) {
-            result += "⌥"
-        }
-        if modifierFlags.contains(.control) {
-            result += "⌃"
-        }
-        if modifierFlags.contains(.shift) {
-            result += "⇧"
-        }
-
-        result += keyCharFor(keyCode)
-
-        return result
-    }
-
-    private func keyCharFor(_ keyCode: UInt32) -> String {
-        let keyMap: [UInt32: String] = [
-            0: "A", 1: "S", 2: "D", 3: "F", 4: "H", 5: "G", 6: "Z", 7: "X", 8: "C", 9: "V",
-            11: "B", 12: "Q", 13: "W", 14: "E", 15: "R", 16: "Y", 17: "T", 18: "1", 19: "2",
-            20: "3", 21: "4", 22: "6", 23: "5", 24: "=", 25: "9", 26: "7", 27: "-", 28: "8",
-            29: "0", 30: "]", 31: "O", 32: "U", 33: "[", 34: "I", 35: "P", 37: "L", 38: "J",
-            39: "'", 40: "K", 41: ";", 42: "\\", 43: ",", 44: "/", 45: "N", 46: "M", 47: ".",
-            50: "`", 65: "."
-        ]
-        return keyMap[keyCode] ?? "?"
-    }
-
-    @objc private func testConnection() {
-        let secretId = secretIdTextField.stringValue.trimmingCharacters(in: .whitespaces)
-        let secretKey = secretKeyTextField.stringValue.trimmingCharacters(in: .whitespaces)
-        let region = regionComboBox.stringValue
-
-        guard !secretId.isEmpty && !secretKey.isEmpty else {
-            updateStatus("✕ 请输入 Secret ID 和 Secret Key", color: NSColor(hex: "#FF3B30"))
-            DebugLog.debug("Credentials empty")
-            return
-        }
-
-        updateStatus("⟳ 测试连接中...", color: NSColor(hex: "#007AFF"))
-        testButton.isEnabled = false
-
-        DebugLog.debug("Testing with credentials...")
-
-        Task {
-            let tempManager = TencentTranslationManager()
-
-            ConfigManager.shared.tencentSecretId = secretId
-            ConfigManager.shared.tencentSecretKey = secretKey
-            ConfigManager.shared.tencentRegion = region
-
-            let result = await tempManager.translate("Hello", sourceLang: "en", targetLang: "zh")
-
-            await MainActor.run {
-                self.testButton.isEnabled = true
-
-                if result != nil {
-                    self.hotkeyManager?.reloadHotkeys()
-                    self.updateStatus("✓ 测试成功，配置已自动保存", color: NSColor(hex: "#34C759"))
-                    DebugLog.debug("test succeeded and configuration saved")
-                } else {
-                    self.updateStatus("✕ 测试失败，请检查凭证", color: NSColor(hex: "#FF3B30"))
-                    DebugLog.debug("test failed")
-                }
-            }
-        }
-    }
-
-    @objc private func resetToDefaultHotkeys() {
-        ConfigManager.shared.resetHotkeys()
-
-        captureHotkeyTextField.stringValue = hotkeyStringFor(ConfigManager.shared.captureHotkeyKeyCode,
-                                                               modifiers: ConfigManager.shared.captureHotkeyModifiers)
-        doubleClickHotkeyTextField.stringValue = hotkeyStringFor(ConfigManager.shared.doubleClickHotkeyKeyCode,
-                                                                  modifiers: ConfigManager.shared.doubleClickHotkeyModifiers)
-
-        hotkeyManager?.reloadHotkeys()
-
-        updateStatus("✓ 已恢复默认快捷键", color: NSColor(hex: "#34C759"))
-        DebugLog.debug("Hotkeys reset to defaults")
-    }
-
-    @objc private func closeWindow() {
-        view.window?.close()
-        DebugLog.debug("Settings window closed")
-    }
-
-    private func updateStatus(_ message: String, color: NSColor) {
-        statusLabel.stringValue = message
-        statusLabel.textColor = color
-    }
-
-    // MARK: - NSTabViewDelegate
-
-    func tabView(_ tabView: NSTabView, willSelect tabViewItem: NSTabViewItem?) {
-        guard let tabViewItem = tabViewItem else { return }
-
-        if tabViewItem.label == "账号配置" {
-            testButton.isHidden = false
-            resetHotkeyButton.isHidden = true
-        } else if tabViewItem.label == "快捷键配置" {
-            testButton.isHidden = true
-            resetHotkeyButton.isHidden = false
-            updateStatus("", color: NSColor.secondaryLabelColor)
-        }
-    }
-
-    func tabView(_ tabView: NSTabView, didSelect tabViewItem: NSTabViewItem?) {
-        guard let tabViewItem = tabViewItem, let containerView = tabViewItem.view else {
-            return
-        }
-
-        DispatchQueue.main.async {
-            containerView.translatesAutoresizingMaskIntoConstraints = true
-            containerView.frame = NSRect(x: 10, y: 33, width: 360, height: 250)
-            containerView.layoutSubtreeIfNeeded()
-        }
-    }
 }
 
 extension NSColor {
-    convenience init(hex: String) {
-        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
-        var int: UInt64 = 0
-        Scanner(string: hex).scanHexInt64(&int)
-        let a, r, g, b: UInt64
-        switch hex.count {
-        case 3:
-            (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
-        case 6:
-            (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
-        case 8:
-            (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
-        default:
-            (a, r, g, b) = (1, 1, 1, 0)
-        }
-
-        self.init(
-            red: CGFloat(r) / 255,
-            green: CGFloat(g) / 255,
-            blue: CGFloat(b) / 255,
-            alpha: CGFloat(a) / 255
-        )
+  convenience init(hex: String) {
+    let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+    var int: UInt64 = 0
+    Scanner(string: hex).scanHexInt64(&int)
+    let a: UInt64
+    let r: UInt64
+    let g: UInt64
+    let b: UInt64
+    switch hex.count {
+    case 3:
+      (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
+    case 6:
+      (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
+    case 8:
+      (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
+    default:
+      (a, r, g, b) = (1, 1, 1, 0)
     }
+
+    self.init(
+      red: CGFloat(r) / 255,
+      green: CGFloat(g) / 255,
+      blue: CGFloat(b) / 255,
+      alpha: CGFloat(a) / 255
+    )
+  }
 }
