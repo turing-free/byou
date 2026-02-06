@@ -15,6 +15,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var anchorView: NSView?
     private var settingsWindow: NSWindow?
     private var statusItem: NSStatusItem?
+    private var previousFocusedApp: NSRunningApplication?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         DebugLog.debug("byou started. Press Alt+S to capture selected content, Alt+X for double-click.")
@@ -120,7 +121,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             popover?.animates = true
             popover?.delegate = self
 
-            // Pre-load the view to ensure layout is ready
+            popoverViewController?.onEscapeKeyPressed = { [weak self] in
+                DebugLog.debug("ESC key pressed in popover")
+                self?.restorePreviousFocus()
+            }
+
             _ = popoverViewController?.view
         }
     }
@@ -177,6 +182,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func handleHotkeyS() {
+        previousFocusedApp = NSWorkspace.shared.frontmostApplication
+        DebugLog.debug("Previous focused app: \(previousFocusedApp?.localizedName ?? "None")")
+
         Thread.sleep(forTimeInterval: 0.05)
         if clipboardManager.copySelectedContent() != nil {
             Thread.sleep(forTimeInterval: 0.1)
@@ -207,6 +215,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func handleHotkeyX() {
+        previousFocusedApp = NSWorkspace.shared.frontmostApplication
+        DebugLog.debug("Previous focused app: \(previousFocusedApp?.localizedName ?? "None")")
+
         mouseManager.doubleClick()
         DebugLog.debug("Double-click simulated")
 
@@ -303,9 +314,22 @@ extension AppDelegate: NSWindowDelegate {
     }
 }
 
-extension AppDelegate: NSPopoverDelegate {
+    extension AppDelegate: NSPopoverDelegate {
     func popoverWillClose(_ notification: Notification) {
         self.anchorWindow?.orderOut(nil)
         DebugLog.debug("Popover will close, anchor window hidden")
+    }
+
+    func restorePreviousFocus() {
+        guard let previousApp = previousFocusedApp else {
+            DebugLog.debug("No previous app to restore focus to")
+            return
+        }
+
+        DebugLog.debug("Restoring focus to: \(previousApp.localizedName ?? "Unknown")")
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            previousApp.activate(options: .activateIgnoringOtherApps)
+        }
     }
 }

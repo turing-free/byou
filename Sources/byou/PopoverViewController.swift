@@ -10,6 +10,8 @@ class PopoverViewController: NSViewController {
     private var originalContainer: NSView!
     private var translatedContainer: NSView!
 
+    var onEscapeKeyPressed: (() -> Void)?
+
     override func loadView() {
         let mainView = NSView(frame: NSRect(x: 0, y: 0, width: 390, height: 400))
         mainView.wantsLayer = true
@@ -157,5 +159,10 @@ class PopoverViewController: NSViewController {
         _ = self.view
         originalTextView.string = ""
         translatedTextView.string = ""
+    }
+
+    override func cancelOperation(_ sender: Any?) {
+        onEscapeKeyPressed?()
+        super.cancelOperation(sender)
     }
 }
