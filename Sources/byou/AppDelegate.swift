@@ -21,12 +21,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         checkAccessibilityPermissions()
 
-        anchorView = NSView(frame: NSRect(x: 0, y: 0, width: 1, height: 1))
+        let view = NSView(frame: NSRect(x: 0, y: 0, width: 1, height: 1))
+        view.wantsLayer = true
+        view.layer?.backgroundColor = NSColor.clear.cgColor
+        anchorView = view
+
         anchorWindow = NSWindow(contentRect: anchorView!.frame, styleMask: [], backing: .buffered, defer: false)
         anchorWindow?.contentView = anchorView
         anchorWindow?.isReleasedWhenClosed = false
         anchorWindow?.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.overlayWindow)))
-        anchorWindow?.orderFront(nil)
         anchorWindow?.setFrameOrigin(NSPoint(x: -1000, y: -1000))
 
         if ConfigManager.shared.isTencentConfigured {
@@ -115,6 +118,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             popoverViewController = popover?.contentViewController as? PopoverViewController
             popover?.behavior = .transient
             popover?.animates = true
+            popover?.delegate = self
 
             // Pre-load the view to ensure layout is ready
             _ = popoverViewController?.view
@@ -125,13 +129,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         DispatchQueue.main.async {
             NSApp.activate(ignoringOtherApps: true)
 
-            if self.popover == nil {
-                self.popover = NSPopover()
-                self.popover?.contentViewController = PopoverViewController()
-                self.popoverViewController = self.popover?.contentViewController as? PopoverViewController
-                self.popover?.behavior = .transient
-                self.popover?.animates = true
-            }
+            self.ensurePopoverInitialized()
 
             self.popover?.contentSize = CGSize(width: 390, height: 400)
 
@@ -164,6 +162,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             }
 
+            self.anchorWindow?.orderFront(nil)
             self.anchorWindow?.setFrameOrigin(anchorOrigin)
 
             self.popover?.show(relativeTo: NSRect(x: 0, y: 0, width: popoverSize.width, height: 1),
@@ -301,5 +300,12 @@ extension AppDelegate: NSWindowDelegate {
 
             DebugLog.debug("Settings window cleaned up")
         }
+    }
+}
+
+extension AppDelegate: NSPopoverDelegate {
+    func popoverWillClose(_ notification: Notification) {
+        self.anchorWindow?.orderOut(nil)
+        DebugLog.debug("Popover will close, anchor window hidden")
     }
 }
